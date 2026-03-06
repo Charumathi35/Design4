@@ -34,6 +34,7 @@ function init3DHero() {
     });
 
     // Initialize Three.js Scene
+    const hero3D = document.getElementById('hero-3d');
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050a15);
     scene.fog = new THREE.FogExp2(0x050a15, 0.005);
@@ -50,7 +51,7 @@ function init3DHero() {
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    controls.dampingFactor = 0.1; // Increased for a more responsive and less 'sticky' drag
     controls.maxDistance = 300;
     controls.minDistance = 20;
     controls.enableZoom = false; // Disable scroll-to-zoom to let page scroll work natively
@@ -129,8 +130,8 @@ function init3DHero() {
     const viaGeo = new THREE.RingGeometry(0.4, 0.8, 16);
     const viaMat = new THREE.MeshBasicMaterial({ color: 0x0055ff, side: THREE.DoubleSide, opacity: 0.7, transparent: true });
 
-    // Reduced loop from 200 to 120 for serious lag reduction and cleaner background
-    for (let i = 0; i < 120; i++) {
+    // Reduced loop from 120 to 80 for maximum ultra-smooth performance
+    for (let i = 0; i < 80; i++) {
         let x = (Math.random() - 0.5) * 450;
         let z = (Math.random() - 0.5) * 450;
         let pts = [new THREE.Vector3(x, 0, z)];
@@ -178,6 +179,7 @@ function init3DHero() {
 
     // Arrays to hold dynamics
     const nodes = [];
+    const nodeMeshes = []; // Optimization: Only intersect these meshes
     const animatedLines = [];
     const labelsContainer = document.getElementById('labels-container');
 
@@ -223,6 +225,7 @@ function init3DHero() {
         chip.position.copy(targetPos);
         chip.userData = { isNode: true, company: comp, id: i, baseY: targetPos.y };
         circuitGroup.add(chip);
+        nodeMeshes.push(chip); // Add to optimized intersection set
 
         const startPos = new THREE.Vector3(x > 0 ? 8 : -8, 0, z > 0 ? 8 : -8);
         const circuit = createCircuitPath(startPos, targetPos);
@@ -299,6 +302,9 @@ function init3DHero() {
     const cardModal = document.getElementById('card-modal');
     const cardContent = document.getElementById('card-content');
 
+    // Use a flag to track if we're currently in a camera transition
+    let isTransitioning = false;
+
     function showCard(comp) {
         cardContent.innerHTML = comp.html;
         cardModal.classList.add('active');
@@ -306,30 +312,64 @@ function init3DHero() {
 
     function hideCard() {
         cardModal.classList.remove('active');
-        gsap.to(camera.position, { x: 0, y: 30, z: 130, duration: 1.5, ease: "power3.inOut" });
+        isTransitioning = true;
+        controls.enabled = false; // Stop user flight fight
+        gsap.to(camera.position, {
+            x: 0, y: 30, z: 130,
+            duration: 1.5,
+            ease: "power3.inOut",
+            onComplete: () => {
+                isTransitioning = false;
+                controls.enabled = true; // Re-enable
+            }
+        });
         gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.5, ease: "power3.inOut" });
     }
 
-    document.getElementById('close-btn').addEventListener('click', hideCard);
+    document.getElementById('close-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideCard();
+    });
 
-    window.addEventListener('click', () => {
+    window.addEventListener('click', (e) => {
+        // Ignore clicks on buttons/links or if we are already transitioning
+        if (e.target.closest('button') || e.target.closest('a')) return;
+
         if (hoveredNode) {
+            isTransitioning = true;
+            controls.enabled = false;
             showCard(hoveredNode.userData.company);
-            const target = hoveredNode.position.clone();
-            target.y += 15; target.z += 40;
-            gsap.to(camera.position, { x: target.x, y: target.y, z: target.z, duration: 1.5, ease: "power3.inOut" });
-            gsap.to(controls.target, { x: hoveredNode.position.x, y: hoveredNode.position.y, z: hoveredNode.position.z, duration: 1.5, ease: "power3.inOut" });
-        } else if (!cardModal.classList.contains('active')) {
+            const targetPos = hoveredNode.position.clone();
+            targetPos.y += 15;
+            targetPos.z += 40;
+
+            gsap.to(camera.position, {
+                x: targetPos.x, y: targetPos.y, z: targetPos.z,
+                duration: 1.5,
+                ease: "power3.inOut",
+                onComplete: () => {
+                    isTransitioning = false;
+                    controls.enabled = true;
+                }
+            });
+            gsap.to(controls.target, {
+                x: hoveredNode.position.x, y: hoveredNode.position.y, z: hoveredNode.position.z,
+                duration: 1.5,
+                ease: "power3.inOut"
+            });
+        } else if (!cardModal.classList.contains('active') && !isTransitioning) {
+            // Only reset if modal is not active and we are not in the middle of a motion
             gsap.to(camera.position, { x: 0, y: 30, z: 130, duration: 1.5, ease: "power3.inOut" });
             gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.5, ease: "power3.inOut" });
         }
     });
 
+    let hero3DHeight = hero3D.clientHeight;
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-        // Keep canvas size relative to window width but max height 100vh
-        renderer.setSize(window.innerWidth, document.getElementById('hero-3d').clientHeight);
+        hero3DHeight = hero3D.clientHeight;
+        renderer.setSize(window.innerWidth, hero3DHeight);
     });
 
     const clock = new THREE.Clock();
@@ -344,19 +384,13 @@ function init3DHero() {
             l.mesh.material.dashOffset -= l.speed;
         });
 
-        const heroRect = document.getElementById('hero-3d').getBoundingClientRect();
-        // Only trigger raycaster if mouse is over hero canvas (y > 0 and y < heroRect.height)
-        if (heroRect.top <= 0 && heroRect.bottom >= 0) {
-            raycaster.setFromCamera(mouse, camera);
-        }
+        // Optimized raycasting: only check against company nodes, not background lines or geometry
+        raycaster.setFromCamera(mouse, camera);
 
-        const intersects = raycaster.intersectObjects(circuitGroup.children);
+        const intersects = raycaster.intersectObjects(nodeMeshes);
         let found = null;
-        for (let i = 0; i < intersects.length; i++) {
-            if (intersects[i].object.userData.isNode) {
-                found = intersects[i].object;
-                break;
-            }
+        if (intersects.length > 0) {
+            found = intersects[0].object;
         }
 
         if (found !== hoveredNode) {
@@ -364,9 +398,9 @@ function init3DHero() {
             hoveredNode = found;
             if (hoveredNode) {
                 hoveredNode.material.emissive.setHex(0x0088ff);
-                document.getElementById('hero-3d').style.cursor = 'pointer';
+                hero3D.style.cursor = 'pointer';
             } else {
-                document.getElementById('hero-3d').style.cursor = 'default';
+                hero3D.style.cursor = 'default';
             }
         }
 
@@ -386,7 +420,7 @@ function init3DHero() {
             pos.project(camera);
             if (pos.z < 1 && pos.z > -1) {
                 const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (pos.y * -0.5 + 0.5) * document.getElementById('hero-3d').clientHeight;
+                const y = (pos.y * -0.5 + 0.5) * hero3DHeight;
                 node.label.style.transform = `translate(-50%, -50%) translate(${x}px, ${y - 45}px)`;
                 node.label.classList.add('visible');
             } else {
@@ -402,7 +436,7 @@ function init3DHero() {
 
         if (logoPos.z < 1 && logoPos.z > -1) {
             const cx = (logoPos.x * 0.5 + 0.5) * window.innerWidth;
-            const cy = (logoPos.y * -0.5 + 0.5) * document.getElementById('hero-3d').clientHeight;
+            const cy = (logoPos.y * -0.5 + 0.5) * hero3DHeight;
             centerLogoWrap.style.transform = `translate(-50%, -50%) translate(${cx}px, ${cy}px)`;
             centerLogoWrap.classList.add('visible');
         } else {
