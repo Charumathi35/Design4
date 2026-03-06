@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" style="scroll-behavior: smooth;">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricol</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- 3D Hero Section -->
+    <div id="hero-3d" style="position: relative; width: 100%; height: 100vh; overflow: hidden; background: #050a15;">
+        <!-- 3D Scene Container -->
+        <div id="canvas-container"></div>
+
+        <!-- UI Overlay Layer -->
+        <div id="ui-layer">
+            <!-- <div class="header-overlay">
+                <img src="images/logo.png" alt="Pricol Logo" class="main-logo-ui">
+                <p class="subtitle">Interactive 3D Ecosystem</p>
+            </div> -->
+
+            <div class="instruction">Drag to Rotate &bull; Click Nodes</div>
+
+            <div id="card-modal" class="card-modal">
+                <button id="close-btn">&times;</button>
+                <div id="card-content"></div>
+            </div>
+
+            <!-- Node Labels Container (3D to 2D projections) -->
+            <div id="labels-container"></div>
+
+            <div class="scroll-indicator" style="bottom: 10px; z-index: 30;">
+                <span class="scroll-text" style="color: #00aaff;">Scroll to Explore</span>
+                <div class="scroll-line"></div>
+            </div>
+        </div>
+
+    </div> <!-- End of hero-3d -->
+
+    <!-- Original Content Container -->
+    <div class="content-container" id="content-container">
+
+        <!-- Background Images -->
+        <div id="bg-image-container">
+            <!-- Removed 50th Year background -->
+            <img id="bg-pricol-limited" class="bg-img" src="images/limited-gen.png" alt="Automotive" />
+            <img id="bg-pricol-precision" class="bg-img" src="images/precision-gen.png" alt="Precision" />
+            <img id="bg-pricol-engineering" class="bg-img" src="images/engineering.png" alt="Engineering" />
+            <img id="bg-pricol-logistics" class="bg-img" src="images/logistics.png" alt="Logistics" />
+            <img id="bg-pricol-travel" class="bg-img" src="images/travel.png" alt="Travel" />
+            <img id="bg-pricol-gourmet" class="bg-img" src="images/gourmet.png" alt="Gourmet" />
+            <!-- Fallback to Unsplash for Retreats due to quota -->
+            <img id="bg-pricol-retreats" class="bg-img" src="images/retreats.png" alt="Retreats" />
+
+            <!-- New Section Backgrounds (Placeholders) -->
+            <img id="bg-bluorb" class="bg-img" src="images/bluorb-final.png" alt="Bluorb" />
+            <img id="bg-pricol-durapack" class="bg-img" src="images/durapack-gen.png" alt="Pricol Durapack" />
+            <img id="bg-pricol-asia" class="bg-img" src="images/pricol_asia.png" alt="Pricol Asia" />
+            <img id="bg-pricol-surya" class="bg-img" src="images/pricol_surya.png" alt="Pricol Surya" />
+            <img id="bg-pricol-holdings-section" class="bg-img" src="images/pricol_holdings.png"
+                alt="Pricol Holdings" />
+        </div>
+
+        <canvas id="bg-canvas"></canvas>
+
+        <svg id="motionPath" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <clipPath id="circle-clip">
+                    <circle cx="0" cy="0" r="40" />
+                </clipPath>
+            </defs>
+            <path id="path" fill="none" stroke="#D4AF37" stroke-width="2" style="opacity: 1;" />
+
+            <!-- Logo Tracker - Adjust 'href' to change image -->
+            <!-- Logo Tracker Group -->
+            <g id="tracker">
+                <image href="images/logo_icon.png" x="-40" y="-40" width="80" height="80" clip-path="url(#circle-clip)"
+                    preserveAspectRatio="xMidYMid slice" />
+                <text id="tracker-text" x="50" y="10" fill="white" font-family="Inter, sans-serif" font-size="24"
+                    font-weight="bold" opacity="0">Pricol</text>
+            </g>
+        </svg>
+
+        <section class="intro" id="intro" style="display:none;">
+            <div class="intro-layout">
+                <div class="intro-left">
+                    <h3>WELCOME TO</h3>
+                    <img src="images/logo.png" alt="Pricol Holdings" class="main-logo" />
+                    <!-- 50th Year Image moved to background -->
+                    <p class="intro-desc">Established in 1975, Pricol Holdings is a leading business conglomerate
+                        Headquartered in Coimbatore, India. Pricol commenced its operations in the field of Automotive
+                        Instruments and today is a leading player in the fields of Automotive Components & Solutions,
+                        Engineering, Hospitality, Corporate & Leisure Travel, Cargo, and Realty. Today, the group
+                        employs more than 5500 professional workforce across the globe with a turnover of over INR 3000
+                        Crore and a list of award winning brands under its umbrella.</p>
+                </div>
+                <!-- <div class="intro-right">
+                    <div class="group-companies-card">
+                        <h3>GROUP COMPANIES</h3>
+                        <ul>
+                            <li>PRICOL LIMITED</li>
+                            <li>PRICOL PRECISION PRODUCTS</li>
+                            <li>PRICOL ENGINEERING INDUSTRIES</li>
+                            <li>PRICOL LOGISTICS</li>
+                            <li>PRICOL TRAVEL</li>
+                            <li>PRICOL GOURMET</li>
+                            <li>PRICOL RETREATS</li>
+                        </ul>
+                    </div>
+                </div> -->
+            </div>
+
+        </section>
+
+        <!-- Added 'waypoint' class for tighter JS targeting if needed -->
+        <!-- 1. Pricol Limited (Left) -->
+        <section class="company left waypoint" id="pricol-limited">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Limited</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/limited-removebg-preview.png" alt="Pricol Limited Logo"
+                            class="company-logo">
+                    </div>
+                </div>
+                <p>As a leading player in Automotive Components & Solutions, we specialize in Driver Information Systems
+                    and Connected Vehicle Solutions. We are committed to fueling the future of mobility with innovative,
+                    high-performance technology that enhances the driving experience across the globe.</p>
+                <a href="https://www.pricol.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 2. Pricol Precision (Right) -->
+        <section class="company right waypoint" id="pricol-precision">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Precision Products</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Precision-removebg-preview.png" alt="Pricol Precision Logo"
+                            class="company-logo">
+                    </div>
+                </div>
+                <p>We deliver excellence in precision manufacturing, offering high-quality sintered components and
+                    specialized tooling solutions. Our advanced engineering capabilities serve a diverse range of
+                    industries, ensuring durability, accuracy, and operational efficiency for every client.</p>
+                <a href="https://pricolprecision.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 3. Pricol Engineering (Left) -->
+        <section class="company left waypoint" id="pricol-engineering">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Engineering Industries</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Engineering-removebg-preview.png" alt="Pricol Engineering Logo"
+                            class="company-logo">
+                    </div>
+                </div>
+                <p>Delivering top-tier engineering solutions, we focus on industrial automation and heavy machinery
+                    components. Our state-of-the-art facilities and expert workforce enable us to tackle complex
+                    challenges, driving productivity and reliability in the industrial sector.</p>
+                <a href="https://www.pricolengineering.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 4. Pricol Travel (Right - Moved from Left) -->
+        <section class="company right waypoint" id="pricol-travel">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Travel</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Travel-removebg-preview.png" alt="Pricol Travel Logo"
+                            class="company-logo">
+                    </div>
+                </div>
+                <p>Our Corporate & Leisure Travel services provide personalized, memorable experiences tailored to your
+                    needs. Whether planning a large-scale corporate event or a private getaway, we handle every detail
+                    to ensure a seamless and enjoyable journey.</p>
+                <a href="https://www.pricoltravel.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 5. Bluorb (Left - New) -->
+        <section class="company left waypoint" id="bluorb">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Bluorb</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Make_the_outer_202602041748-removebg-preview.png" alt="Bluorb Logo"
+                            class="company-logo">
+                    </div>
+                </div>
+                <p>Innovative digital solutions for the modern world. We specialize in cutting-edge technology services
+                    that empower businesses to thrive in the digital age, delivering custom software strategies and
+                    robust platforms to meet evolving market demands.</p>
+                <a href="https://bluorb.in/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 6. Pricol Gourmet (Right) -->
+        <section class="company right waypoint" id="pricol-gourmet">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Gourmet</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Only_inside_the_202602041759-removebg-preview.png"
+                            alt="Pricol Gourmet Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>We are dedicated to delivering exceptional culinary experiences through our premium catering and
+                    hospitality services. With a passion for flavor and quality, we bring innovative menus and
+                    world-class service to events, creating unforgettable dining moments.</p>
+                <a href="https://www.pricolgourmet.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 7. Pricol Retreats (Left - Moved from Center/Right) -->
+        <section class="company left waypoint" id="pricol-retreats">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Retreats</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/The_last_blue_202602050935-removebg-preview.png"
+                            alt="Pricol Retreats Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>Escape to our luxury retreats, where holistic wellness meets unparalleled hospitality. Nestled in
+                    serene locations, our properties offer a perfect blend of relaxation and rejuvenation, allowing you
+                    to unwind in comfort and reconnect with nature.</p>
+                <a href="https://dvara.in/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 8. Pricol Durapack (Right - New) -->
+        <section class="company right waypoint" id="pricol-durapack">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Durapack Private Limited</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/The_last_blue_202602050939-removebg-preview.png"
+                            alt="Pricol Durapack Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>Leading the way in sustainable packaging solutions. We provide high-quality, eco-friendly packaging
+                    materials designed to protect your products while minimizing environmental impact, supporting a
+                    greener future for supply chains globally.</p>
+                <a href="https://pricolpack.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 9. Pricol Logistics (Left - Moved from Right) -->
+        <section class="company left waypoint" id="pricol-logistics">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Logistics</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/The_last_blue_202602050946-removebg-preview.png"
+                            alt="Pricol Logistics Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>We provide efficient, end-to-end cargo and logistics solutions designed to keep the world moving.
+                    From warehousing to last-mile delivery, our robust supply chain network ensures that your goods are
+                    transported safely, securely, and on time, every time.</p>
+                <a href="http://pricollogistics.com/" target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 10. Pricol Asia (Right - New) -->
+        <section class="company right waypoint" id="pricol-asia">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Asia</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Asia-removebg-preview.png" alt="Pricol Asia Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>Expanding our footprint across the Asian market with diversified business interests. We focus on
+                    strategic partnerships and regional growth, delivering value-driven solutions that cater to the
+                    unique needs of dynamic Asian economies.</p>
+                <a href="https://www.dnb.com/business-directory/company-profiles.pricol_asia_pte_limited.a80e2946f58c91f8b8085a134bf2a06a.html"
+                    target="_blank" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 11. Pricol Surya (Left - New) -->
+        <section class="company left waypoint" id="pricol-surya">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Surya</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/Surya-removebg-preview.png" alt="Pricol Surya Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>Illuminating the future with advanced energy solutions. Our focus lies in renewable energy projects
+                    and efficient power systems, dedicated to creating a sustainable and bright tomorrow for communities
+                    and industries alike.</p>
+                <a href="#" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <!-- 12. Pricol Holdings (Right - New/Final) -->
+        <section class="company right waypoint" id="pricol-holdings-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Pricol Holdings</h2>
+                    <div class="card-logo-placeholder">
+                        <img src="images/logos/The_last_blue_202602050947-removebg-preview.png"
+                            alt="Pricol Holdings Logo" class="company-logo">
+                    </div>
+                </div>
+                <p>The parent entity driving the vision and strategy for all our group companies. We foster innovation,
+                    operational excellence, and long-term value creation, ensuring that the Pricol name stands for
+                    quality and integrity in every sector we operate.</p>
+                <a href="#" class="btn">Visit Website</a>
+            </div>
+        </section>
+
+        <section class="footer" id="footer">
+            <img src="images/logo.png" alt="Pricol" class="footer-logo">
+            <p>&copy; 2026 Pricol Holdings Private Limited. All Rights Reserved.</p>
+        </section>
+
+    </div>
+
+    <!-- GSAP Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

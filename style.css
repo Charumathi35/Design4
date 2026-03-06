@@ -1,0 +1,657 @@
+:root {
+    --bg-color: #0d1117;
+    --text-color: #e6e6e6;
+    --accent-color: #D4AF37;
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+}
+
+.content-container {
+    position: relative;
+    width: 100%;
+}
+
+.bg-img {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1s ease;
+    z-index: -3;
+    filter: brightness(0.7);
+}
+
+.bg-img.active {
+    opacity: 1;
+}
+
+#bg-intro {
+    object-fit: contain;
+    background-color: #002250;
+}
+
+#bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+}
+
+svg#motionPath {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 5;
+    pointer-events: none;
+    overflow: visible;
+}
+
+#path {
+    stroke: rgba(212, 175, 55, 0.4);
+    stroke-width: 4px;
+    fill: none;
+    stroke-linecap: round;
+}
+
+#tracker {
+    transform-origin: center;
+    pointer-events: none;
+    will-change: transform;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+}
+
+#tracker-text {
+    font-family: var(--font-body);
+    font-size: 24px;
+    font-weight: 700;
+    fill: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+section {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.intro {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5%;
+}
+
+.intro-layout {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 1400px;
+    gap: 4rem;
+    flex-wrap: wrap;
+}
+
+.intro-left {
+    flex: 1;
+    min-width: 300px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.intro-left h3 {
+    color: #4da6ff;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.main-logo {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+}
+
+.fifty-years-img {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    margin-bottom: 2rem;
+    filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.4));
+}
+
+.intro-desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #ddd;
+    text-align: justify;
+    text-align-last: center;
+    max-width: 700px;
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0.8;
+    animation: bounce 2s infinite;
+}
+
+.scroll-text {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #a0c0e0;
+}
+
+.scroll-line {
+    width: 2px;
+    height: 40px;
+    background-color: #4da6ff;
+}
+
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    40% {
+        transform: translateX(-50%) translateY(-10px);
+    }
+
+    60% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+}
+
+.intro-right {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    justify-content: center;
+}
+
+.group-companies-card {
+    background: linear-gradient(135deg, #2b72b5 0%, #1e5a96 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 500px;
+    opacity: 0;
+    transform: translateX(50px);
+}
+
+.group-companies-card h3 {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 1rem;
+}
+
+.group-companies-card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.group-companies-card ul li {
+    background: #fff;
+    color: #1e5a96;
+    padding: 0.8rem 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    transition: transform 0.3s ease;
+    cursor: default;
+}
+
+.group-companies-card ul li:hover {
+    transform: translateX(10px);
+    background: #f0f8ff;
+}
+
+.highlight {
+    color: var(--accent-color);
+}
+
+.company {
+    display: flex;
+    padding: 0 5%;
+}
+
+.company.left {
+    justify-content: flex-start;
+}
+
+.company.right {
+    justify-content: flex-end;
+}
+
+.company.centered {
+    justify-content: center;
+}
+
+.card {
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.7), rgba(20, 20, 30, 0.5));
+    padding: 3rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    max-width: 600px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--accent-color);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+}
+
+.card h2 {
+    font-family: var(--font-heading);
+    color: var(--text-color);
+    font-size: 2rem;
+    margin-bottom: 0;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    flex: 1;
+}
+
+.card-logo-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: #fff;
+    border: 2px solid var(--accent-color);
+}
+
+.company-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.8rem 2rem;
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    text-decoration: none;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+}
+
+.btn:hover {
+    background: var(--accent-color);
+    color: #000;
+}
+
+#pricol-holdings-section {
+    min-height: 120vh;
+    padding-bottom: 10vh;
+}
+
+.footer {
+    min-height: 40vh;
+    background: #000;
+    color: #555;
+    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding-top: 5rem;
+}
+
+.footer-logo {
+    width: 200px;
+    height: auto;
+    filter: brightness(0.8);
+}
+
+
+/* ------------------------------------------------ */
+/* NEW 3D HERO HERO CSS ADDITIONS                   */
+/* ------------------------------------------------ */
+
+#hero-3d {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: #050a15;
+    z-index: 20;
+}
+
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    touch-action: none;
+}
+
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.header-overlay {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    pointer-events: auto;
+}
+
+.main-logo-ui {
+    width: 160px;
+    filter: drop-shadow(0 0 15px rgba(0, 170, 255, 0.6));
+}
+
+.subtitle {
+    color: #00aaff;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+
+.instruction {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+#labels-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through empty space to the canvas for drag-to-rotate */
+}
+
+.node-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(0, 30, 60, 0.7);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 170, 255, 0.4);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(5px);
+    pointer-events: auto;
+    /* Keep logos interactive for tooltips */
+}
+
+.floating-logo-wrap {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    pointer-events: auto;
+    /* Ensure hover works */
+}
+
+.company-tooltip {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 30, 60, 0.9);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #00aaff;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.3s;
+    pointer-events: none;
+}
+
+.floating-logo-wrap:hover .company-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.floating-company-logo {
+    width: 130px;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(0, 170, 255, 0.6));
+    transform-origin: center;
+}
+
+.node-label.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.center-label {
+    font-size: 16px;
+    color: #00ffff;
+    background: rgba(0, 20, 50, 0.9);
+    border: 1px solid #00ffff;
+    padding: 8px 20px;
+}
+
+.card-modal {
+    position: absolute;
+    top: 50%;
+    right: 5%;
+    transform: translateY(-50%) translateX(100px);
+    width: 450px;
+    max-width: 90%;
+    background: rgba(10, 15, 25, 0.85);
+    border-left: 3px solid #00aaff;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(15px);
+    padding: 40px;
+    pointer-events: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: 20;
+}
+
+.card-modal.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+}
+
+#close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: 0.3s;
+}
+
+#close-btn:hover {
+    opacity: 1;
+    color: #ff4444;
+}
+
+#card-content h2 {
+    font-family: var(--font-heading);
+    color: var(--text-color);
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+#card-content p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #ccc;
+    margin-bottom: 25px;
+}
+
+@media (max-width: 768px) {
+    .text-block h1 {
+        font-size: 2.5rem;
+    }
+
+    .company {
+        justify-content: center !important;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .header-overlay {
+        top: 20px;
+        left: 20px;
+    }
+
+    .main-logo-ui {
+        width: 130px;
+    }
+
+    .card-modal {
+        top: auto;
+        bottom: 0;
+        right: 0;
+        transform: translateY(100px);
+        width: 100%;
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+        border-left: none;
+        border-top: 3px solid #00aaff;
+        padding: 30px 20px;
+    }
+
+    .card-modal.active {
+        transform: translateY(0);
+    }
+
+    #hero-3d {
+        height: 100svh;
+        /* More reliable on mobile browsers with dynamic navbars */
+    }
+
+    .node-label {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .center-label {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .floating-company-logo {
+        width: 80px;
+    }
+}
