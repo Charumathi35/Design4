@@ -11,8 +11,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector('.scroll-indicator').addEventListener('click', () => {
         const firstCompany = document.getElementById('pricol-limited');
         if (firstCompany) {
+            const heroH = document.getElementById('hero-3d').offsetHeight;
+            const sectionCenter = heroH + firstCompany.offsetTop + (firstCompany.offsetHeight / 2);
+            const viewportCenter = window.innerHeight / 2;
+
             window.scrollTo({
-                top: firstCompany.offsetTop,
+                top: sectionCenter - viewportCenter,
                 behavior: 'smooth'
             });
         }
@@ -33,263 +37,623 @@ function init3DHero() {
         });
     });
 
-    // Initialize Three.js Scene
     const hero3D = document.getElementById('hero-3d');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x050a15);
-    scene.fog = new THREE.FogExp2(0x050a15, 0.005);
+    scene.background = null; // transparent to show CSS deep space gradient
+    scene.fog = new THREE.FogExp2(0x050a15, 0.004);
 
-    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // Lower flat angle matched to image
-    camera.position.set(0, 30, 130);
+    // ─── ISOMETRIC TOP-DOWN CAMERA (matches reference image) ────────────────────
+    // Pull back significantly to fit all spread-out elements in a single section
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 290, 130); // Pulled back further to see all corners
+    camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-    // Bind size to the hero-3d container height, not full window if it were different, but hero is 100vh
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
+    let renderer;
+    try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0); // Transparent clear
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+    } catch (e) {
+        console.error("WebGL failed to initialize:", e);
+        // If WebGL fails (like hitting context limit or hardware acceleration is off)
+        // gracefully hide the 3D hero area and let the rest of the site load.
+        if (hero3D) hero3D.style.display = 'none';
+        return; // Exit the 3D hero initialization completely
+    }
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.1; // Increased for a more responsive and less 'sticky' drag
-    controls.maxDistance = 300;
-    controls.minDistance = 20;
-    controls.enableZoom = false; // Disable scroll-to-zoom to let page scroll work natively
-    controls.enablePan = false;  // Keep it centered
+    controls.dampingFactor = 0.08;
+    controls.maxDistance = 320;
+    controls.minDistance = 30;
+    controls.enableZoom = false;
+    controls.enablePan = false;
+    controls.enableRotate = false; // Disable drag-to-rotate
+    controls.target.set(0, 0, 0);
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0x404040, 2);
-    scene.add(ambientLight);
+    // ─── POST PROCESSING (Bloom) ────────────────────────────────────────────────
+    const renderScene = new THREE.RenderPass(scene, camera);
+    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.0, 0.5, 0.21); // threshold 0.21 as requested
+    const composer = new THREE.EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(50, 100, 50);
-    scene.add(dirLight);
+    // ─── LIGHTING ──────────────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0x223355, 2.5));
 
-    const blueLight = new THREE.PointLight(0x00aaff, 3, 200);
-    blueLight.position.set(0, 20, 0);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(80, 120, 60);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+
+    const rimLight = new THREE.DirectionalLight(0x0044ff, 0.6);
+    rimLight.position.set(-80, 40, -60);
+    scene.add(rimLight);
+
+    const blueLight = new THREE.PointLight(0x00aaff, 4, 220);
+    blueLight.position.set(0, 25, 0);
     scene.add(blueLight);
+
+    const goldLight = new THREE.PointLight(0xD4AF37, 2, 180);
+    goldLight.position.set(-30, 15, 30);
+    scene.add(goldLight);
 
     const circuitGroup = new THREE.Group();
     scene.add(circuitGroup);
 
-    // Center Node (CPU)
-    const cpuGeo = new THREE.BoxGeometry(16, 4, 16);
-    const cpuMat = new THREE.MeshPhongMaterial({
-        color: 0x111111,
-        emissive: 0x002255,
-        specular: 0x00ffff,
-        shininess: 100
-    });
-    const cpu = new THREE.Mesh(cpuGeo, cpuMat);
-    circuitGroup.add(cpu);
+    // ─── FLAT CHIP PLATFORM (Clean & Minimal) ──────────────────────────────────
+    const chipGroup = new THREE.Group();
+    circuitGroup.add(chipGroup);
 
-    // Decoration around center CPU
-    const cpuRingGeo = new THREE.RingGeometry(14, 15, 32);
-    const cpuRingMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
-    const cpuRing = new THREE.Mesh(cpuRingGeo, cpuRingMat);
+    const isMobile = window.innerWidth < 1024;
+    const GRID = isMobile ? 7 : 9;
+    const CELL = 2.8;
+    const GAP = 0.18;
+    const STEP = CELL + GAP;
+    const OFFSET = (GRID - 1) * STEP / 2;
+
+    for (let row = 0; row < GRID; row++) {
+        for (let col = 0; col < GRID; col++) {
+            const cx = col * STEP - OFFSET;
+            const cz = row * STEP - OFFSET;
+            const dist = Math.sqrt(cx * cx + cz * cz);
+            const bright = Math.max(0, 1 - dist / (OFFSET * 1.5));
+            const cell = new THREE.Mesh(
+                new THREE.BoxGeometry(CELL, 0.4, CELL),
+                new THREE.MeshPhongMaterial({
+                    color: 0x0a1628,
+                    emissive: new THREE.Color(0x003377).multiplyScalar(0.4 + bright * 0.9),
+                    transparent: true, opacity: 0.75 + bright * 0.2
+                })
+            );
+            cell.position.set(cx, 0.5, cz);
+            chipGroup.add(cell);
+        }
+    }
+
+    // ── SPARK PARTICLES scattered across the top chip surface ──
+    const sparkCount = 180;
+    const sparkPositions = new Float32Array(sparkCount * 3);
+    for (let s = 0; s < sparkCount; s++) {
+        sparkPositions[s * 3 + 0] = (Math.random() - 0.5) * (GRID * STEP);
+        sparkPositions[s * 3 + 1] = 3.2 + Math.random() * 8;
+        sparkPositions[s * 3 + 2] = (Math.random() - 0.5) * (GRID * STEP);
+    }
+    const sparkGeo = new THREE.BufferGeometry();
+    sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+    const sparkParticles = new THREE.Points(sparkGeo,
+        new THREE.PointsMaterial({ color: 0x88ccff, size: 0.4, transparent: true, opacity: 0.85 }));
+    chipGroup.add(sparkParticles);
+
+    // ── CENTER GLOW CORE (pink-white like reference) ──
+    const coreLight = new THREE.PointLight(0xff88cc, 8, 35);
+    coreLight.position.set(0, 4, 0);
+    chipGroup.add(coreLight);
+    const coreMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffaadd })
+    );
+    coreMesh.position.set(0, 4, 0);
+    chipGroup.add(coreMesh);
+
+    // Side plates removed for flat design
+
+
+    // ── ORBIT RING (large ring around the base) ──
+    const cpuRing = new THREE.Mesh(
+        new THREE.RingGeometry(30, 31.5, 80),
+        new THREE.MeshBasicMaterial({ color: 0x00aaff, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
+    );
     cpuRing.rotation.x = Math.PI / 2;
-    cpuRing.position.y = -1;
+    cpuRing.position.y = -1.5;
     circuitGroup.add(cpuRing);
 
-    // Floating UI Logo (Using HTML to fix local CORS issues)
+    const orbitRing = new THREE.Mesh(
+        new THREE.TorusGeometry(34, 0.5, 8, 90),
+        new THREE.MeshBasicMaterial({ color: 0x3388ff, transparent: true, opacity: 0.28 })
+    );
+    orbitRing.rotation.x = Math.PI / 2;
+    circuitGroup.add(orbitRing);
+
+    // ── CHIP AMBIENT LIGHT ──
+    const chipLight = new THREE.PointLight(0x0066ff, 6, 80);
+    chipLight.position.set(0, 15, 0);
+    circuitGroup.add(chipLight);
+
+    // expose for animate loop
+    chipGroup.userData = { sparkGeo, sparkPositions, coreLight, coreMesh };
+    const cpuTop = chipGroup;   // alias so entry-animation code still works
+
+
+    // Center logo — placed ON the chip surface (CORS-safe HTML overlay)
     const centerLogoWrap = document.createElement('div');
     centerLogoWrap.className = 'node-label center-logo-wrap';
-    centerLogoWrap.style.background = 'transparent';
-    centerLogoWrap.style.border = 'none';
-    centerLogoWrap.style.padding = '0';
-
     const centerLogoImg = document.createElement('img');
     centerLogoImg.src = 'images/logo_v2.png';
-    centerLogoImg.style.width = '140px';
-    centerLogoImg.style.opacity = '0.85';
-    centerLogoImg.style.filter = 'drop-shadow(0 0 10px rgba(0, 170, 255, 0.4))';
+    centerLogoImg.className = 'center-chip-logo';
     centerLogoWrap.appendChild(centerLogoImg);
     document.getElementById('labels-container').appendChild(centerLogoWrap);
 
-    // Base Grid and 3D Circuit Background
-    const gridHelper = new THREE.GridHelper(500, 100, 0x003366, 0x000a1a);
-    gridHelper.position.y = -3;
+    // ─── FLOOR / GRID ──────────────────────────────────────────────────────────
+    const gridHelper = new THREE.GridHelper(600, 120, 0x003366, 0x000a1a);
+    gridHelper.position.y = -2;
     circuitGroup.add(gridHelper);
 
-    // Floor Plane
-    const planeGeo = new THREE.PlaneGeometry(800, 800);
-    const planeMat = new THREE.MeshPhongMaterial({ color: 0x020408, depthWrite: false });
-    const plane = new THREE.Mesh(planeGeo, planeMat);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.y = -4;
-    circuitGroup.add(plane);
+    const floorMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(900, 900),
+        new THREE.MeshPhongMaterial({ color: 0x020509, depthWrite: false })
+    );
+    floorMesh.rotation.x = -Math.PI / 2;
+    floorMesh.position.y = -2.5;
+    floorMesh.receiveShadow = true;
+    circuitGroup.add(floorMesh);
 
-    // Decorative Circuit traces (Motherboard look)
+    // ─── CIRCUIT BOARD BACKGROUND TRACES (High Detail) ──────────────────────
     const bgCircuitGroup = new THREE.Group();
-    bgCircuitGroup.position.y = -2.9;
+    bgCircuitGroup.position.y = -2.2;
     circuitGroup.add(bgCircuitGroup);
 
-    const bgLineMat = new THREE.LineBasicMaterial({ color: 0x0033aa, opacity: 0.5, transparent: true });
-    const padMat = new THREE.MeshPhongMaterial({ color: 0x050a15, emissive: 0x002266, specular: 0x00ffff, shininess: 50 });
-    const padGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.2, 16);
-    const viaGeo = new THREE.RingGeometry(0.4, 0.8, 16);
-    const viaMat = new THREE.MeshBasicMaterial({ color: 0x0055ff, side: THREE.DoubleSide, opacity: 0.7, transparent: true });
+    // ─── Primary neon teal/cyan trace materials (main colors in reference image)
+    const bgTeal1 = new THREE.LineDashedMaterial({ color: 0x00ffcc, opacity: 0.85, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgTeal2 = new THREE.LineDashedMaterial({ color: 0x00ddaa, opacity: 0.55, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgCyan = new THREE.LineDashedMaterial({ color: 0x00eeff, opacity: 0.65, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgDim = new THREE.LineDashedMaterial({ color: 0x007755, opacity: 0.28, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgOrange = new THREE.LineDashedMaterial({ color: 0xff4400, opacity: 0.80, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgRed = new THREE.LineDashedMaterial({ color: 0xff2200, opacity: 0.55, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
 
-    // Reduced loop from 120 to 80 for maximum ultra-smooth performance
-    for (let i = 0; i < 80; i++) {
-        let x = (Math.random() - 0.5) * 450;
-        let z = (Math.random() - 0.5) * 450;
-        let pts = [new THREE.Vector3(x, 0, z)];
+    // Via / pad geometries and materials
+    const viaGeo = new THREE.RingGeometry(0.4, 1.0, 12);
+    const viaTeal = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide, opacity: 0.9, transparent: true });
+    const viaOrange = new THREE.MeshBasicMaterial({ color: 0xff5500, side: THREE.DoubleSide, opacity: 1.0, transparent: true });
+    const dotGeo = new THREE.CircleGeometry(1.2, 10);
+    const dotOrange = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.95 });
+    const dotTeal = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.90 });
 
-        let segments = Math.floor(Math.random() * 5) + 1;
-        for (let j = 0; j < segments; j++) {
-            if (Math.random() > 0.5) {
-                x += (Math.random() - 0.5) * 60;
+    // \u2500\u2500 DENSE RADIATING CIRCUIT TRACES FROM CENTER (like reference image) \u2500\u2500
+    for (let i = 0; i < 500; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const startRad = 8 + Math.random() * 30;
+        let x = Math.cos(angle) * startRad;
+        let z = Math.sin(angle) * startRad;
+
+        const pts = [new THREE.Vector3(x, 0, z)];
+        const segs = Math.floor(Math.random() * 7) + 4;
+        const r = Math.random();
+        let mat = bgTeal2, viaMat = viaTeal;
+
+        if (r > 0.94) { mat = bgOrange; viaMat = viaOrange; }
+        else if (r > 0.88) { mat = bgRed; viaMat = viaOrange; }
+        else if (r > 0.65) { mat = bgTeal1; viaMat = viaTeal; }
+        else if (r > 0.45) { mat = bgCyan; viaMat = viaTeal; }
+        else { mat = bgDim; viaMat = viaTeal; }
+
+        let dir = Math.random() > 0.5 ? 'x' : 'z';
+
+        for (let j = 0; j < segs; j++) {
+            const len = 12 + Math.random() * 55;
+            if (dir === 'x') {
+                x += (Math.random() > 0.5 ? 1 : -1) * len;
+                dir = Math.random() > 0.4 ? 'z' : 'diag';
+            } else if (dir === 'z') {
+                z += (Math.random() > 0.5 ? 1 : -1) * len;
+                dir = Math.random() > 0.4 ? 'x' : 'diag';
             } else {
-                z += (Math.random() - 0.5) * 60;
+                x += (Math.random() > 0.5 ? 1 : -1) * len * 0.707;
+                z += (Math.random() > 0.5 ? 1 : -1) * len * 0.707;
+                dir = Math.random() > 0.5 ? 'x' : 'z';
             }
             pts.push(new THREE.Vector3(x, 0, z));
         }
 
-        const bLineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-        const bLine = new THREE.Line(bLineGeo, bgLineMat);
-        bgCircuitGroup.add(bLine);
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+        const circuitLine = new THREE.Line(lineGeo, mat);
+        circuitLine.computeLineDistances();
+        bgCircuitGroup.add(circuitLine);
 
-        const isViaStart = Math.random() > 0.5;
-        const pad1 = new THREE.Mesh(isViaStart ? viaGeo : padGeo, isViaStart ? viaMat : padMat);
-        pad1.position.copy(pts[0]);
-        if (isViaStart) { pad1.rotation.x = -Math.PI / 2; pad1.position.y += 0.05; }
-        bgCircuitGroup.add(pad1);
+        // Glowing ring vias at start/end of traces
+        [pts[0], pts[pts.length - 1]].forEach(p => {
+            if (Math.random() > 0.35) {
+                const ring = new THREE.Mesh(viaGeo, viaMat);
+                ring.position.set(p.x, 0.06, p.z);
+                ring.rotation.x = -Math.PI / 2;
+                bgCircuitGroup.add(ring);
+            }
+        });
 
-        const isViaEnd = Math.random() > 0.5;
-        const pad2 = new THREE.Mesh(isViaEnd ? viaGeo : padGeo, isViaEnd ? viaMat : padMat);
-        pad2.position.copy(pts[pts.length - 1]);
-        if (isViaEnd) { pad2.rotation.x = -Math.PI / 2; pad2.position.y += 0.05; }
-        bgCircuitGroup.add(pad2);
+        // Filled dot at mid-trace corners (the orange/teal junction dots in reference)
+        pts.forEach((p, idx) => {
+            if (idx > 0 && idx < pts.length - 1 && Math.random() > 0.72) {
+                const isOrange = mat === bgOrange || mat === bgRed;
+                const dot = new THREE.Mesh(dotGeo, isOrange ? dotOrange : dotTeal);
+                dot.position.set(p.x, 0.07, p.z);
+                dot.rotation.x = -Math.PI / 2;
+                bgCircuitGroup.add(dot);
+            }
+        });
     }
 
-    const microchipGeo1 = new THREE.BoxGeometry(3, 0.6, 3);
-    const microchipGeo2 = new THREE.BoxGeometry(2, 0.4, 4);
-    const microchipMat = new THREE.MeshPhongMaterial({ color: 0x0a0a0a, emissive: 0x000511, specular: 0x222222, shininess: 80 });
+    // \u2500\u2500 EXTRA SCATTERED ORANGE & TEAL SOLDER DOTS across board (like reference) \u2500\u2500
+    for (let i = 0; i < 300; i++) {
+        const dot = new THREE.Mesh(dotGeo, Math.random() > 0.5 ? dotOrange : dotTeal);
+        dot.position.set((Math.random() - 0.5) * 800, 0.07, (Math.random() - 0.5) * 800);
+        dot.rotation.x = -Math.PI / 2;
+        dot.scale.setScalar(0.4 + Math.random() * 1.5);
+        bgCircuitGroup.add(dot);
+    }
 
-    for (let i = 0; i < 60; i++) {
-        const x = (Math.random() - 0.5) * 400;
-        const z = (Math.random() - 0.5) * 400;
-        const useGeo1 = Math.random() > 0.5;
-        const chip = new THREE.Mesh(useGeo1 ? microchipGeo1 : microchipGeo2, microchipMat);
-        chip.position.set(x, 0.3, z);
-        if (Math.random() > 0.5) chip.rotation.y = Math.PI / 2;
+    // \u2500\u2500 IC CHIP COMPONENT PADS (dark rectangles with glowing neon edges) \u2500\u2500
+    const chipBodyMat = new THREE.MeshBasicMaterial({ color: 0x000d1a, transparent: true, opacity: 0.92 });
+    for (let i = 0; i < 80; i++) {
+        const w = 5 + Math.random() * 20, d = 5 + Math.random() * 20;
+        const chip = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), chipBodyMat);
+        chip.position.set((Math.random() - 0.5) * 700, 0.15, (Math.random() - 0.5) * 700);
+        const edgeMat = Math.random() > 0.75
+            ? new THREE.LineBasicMaterial({ color: 0xff5500, opacity: 0.8, transparent: true })
+            : new THREE.LineBasicMaterial({ color: 0x00ffcc, opacity: 0.7, transparent: true });
+        chip.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, 0.3, d)), edgeMat));
         bgCircuitGroup.add(chip);
     }
 
-    // Arrays to hold dynamics
+    // ─── UTILITY: Build a PCB-style traced path with 45-degree elbows ────────────────
+    function createCircuitPath(start, end) {
+        const pts = [start.clone()];
+        const dx = end.x - start.x;
+        const dz = end.z - start.z;
+        
+        if (Math.abs(dx) > Math.abs(dz)) {
+            // Primarily moving along X. Go straight on X first.
+            const midX1 = start.x + dx * 0.3;
+            pts.push(new THREE.Vector3(midX1, start.y, start.z));
+            
+            // 45-degree turn towards Z. X and Z must change by the same amount.
+            const distZ = Math.abs(dz);
+            const signX = Math.sign(dx);
+            const signZ = Math.sign(dz);
+            
+            const midX2 = midX1 + signX * distZ;
+            const midZ2 = start.z + signZ * distZ;
+            pts.push(new THREE.Vector3(midX2, start.y, midZ2));
+            
+            // Go straight along X for remainder
+            pts.push(new THREE.Vector3(end.x, start.y, end.z));
+        } else {
+            // Primarily moving along Z. Go straight on Z first.
+            const midZ1 = start.z + dz * 0.3;
+            pts.push(new THREE.Vector3(start.x, start.y, midZ1));
+            
+            const distX = Math.abs(dx);
+            const signX = Math.sign(dx);
+            const signZ = Math.sign(dz);
+            
+            const midX2 = start.x + signX * distX;
+            const midZ2 = midZ1 + signZ * distX;
+            pts.push(new THREE.Vector3(midX2, start.y, midZ2));
+            
+            // Go straight along Z for remainder
+            pts.push(new THREE.Vector3(end.x, start.y, end.z));
+        }
+        
+        return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.0);
+    }
+
+    // Helper: build a thick neon tube mesh along a curve
+    function buildTube(curve, radius, color, opacity, segments) {
+        const geo = new THREE.TubeGeometry(curve, segments || 40, radius, 5, false);
+
+        // Taper ends: thinner at ends, thicker in middle
+        const totalSegments = segments || 40;
+        const radialSegments = 5;
+        const positions = geo.attributes.position;
+
+        for (let i = 0; i < positions.count; i++) {
+            const zRaw = Math.floor(i / (radialSegments + 1));
+            const t = zRaw / totalSegments;
+
+            // Taper function: 1.0 in middle, ~0.2 at ends
+            const taper = 0.2 + 0.8 * Math.sin(t * Math.PI);
+
+            // Re-scale point radially outward from the curve's core center at this t
+            const pt = curve.getPoint(t);
+            const x = positions.getX(i);
+            const y = positions.getY(i);
+            const z = positions.getZ(i);
+
+            positions.setXYZ(i,
+                pt.x + (x - pt.x) * taper,
+                pt.y + (y - pt.y) * taper,
+                pt.z + (z - pt.z) * taper
+            );
+        }
+        geo.computeVertexNormals();
+
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x000000,           // Base color is black
+            emissive: color,           // The "glow" color is your light blue
+            emissiveIntensity: 1.0,    // Boost the "brightness" past 1.0
+            transparent: true,
+            opacity: opacity
+        });
+        return new THREE.Mesh(geo, mat);
+    }
+
+    // ─── NODE ICON CARDS (3D billboard panels) ─────────────────────────────────
     const nodes = [];
-    const nodeMeshes = []; // Optimization: Only intersect these meshes
+    const nodeMeshes = [];
     const animatedLines = [];
     const labelsContainer = document.getElementById('labels-container');
 
-    function createCircuitPath(start, end) {
-        const pts = [start];
-        let current = start.clone();
-        // Travel out from CPU along the floor
-        if (Math.random() > 0.5) {
-            current = current.clone(); current.x = end.x; pts.push(current);
-            current = current.clone(); current.z = end.z; pts.push(current);
-        } else {
-            current = current.clone(); current.z = end.z; pts.push(current);
-            current = current.clone(); current.x = end.x; pts.push(current);
-        }
+    // Accent colors per company for variety
+    const accentColors = [
+        0x00aaff, 0xD4AF37, 0x00ffcc, 0xff6600, 0x9933ff,
+        0x00ff88, 0xff3366, 0x33ccff, 0xffaa00, 0x44ff44,
+        0xff44aa, 0x00ccff
+    ];
 
-        // Final segment goes straight UP to exactly connect to the base of the floating chip
-        if (Math.abs(end.y - start.y) > 0.1) {
-            current = current.clone();
-            current.y = end.y;
-            pts.push(current);
-        }
-
-        const path = new THREE.CurvePath();
-        for (let i = 0; i < pts.length - 1; i++) {
-            if (pts[i].distanceTo(pts[i + 1]) > 0.1) {
-                path.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
-            }
-        }
-        return { path, pts };
-    }
+    // FIXED POSITIONS per company — same every reload, spread across all corners
+    // Coordinates: X = left(-)/right(+), Z = top(-)/bottom(+), minR=105, rangeX=600, rangeZ=380
+    const fixedPositions = [
+        { x: -10, z: -175 },  // 0. Pricol Limited       — top center
+        { x: 160, z: -155 },  // 1. Pricol Precision     — top right
+        { x: 270, z: -70 },  // 2. Pricol Engineering   — right top
+        { x: 275, z: 55 },  // 3. Pricol Travel        — right bottom
+        { x: 200, z: 130 },  // 4. Bluorb               — bottom right
+        { x: 90, z: 75 },  // 5. Pricol Gourmet       — bottom center
+        { x: -175, z: 120 },  // 6. Pricol Retreats      — bottom left
+        { x: -275, z: 60 },  // 7. Pricol Durapack      — left bottom
+        { x: -272, z: -65 },  // 8. Pricol Logistics     — left top
+        { x: -155, z: -158 },  // 9. Pricol Asia          — top left
+        { x: -100, z: 15 },  // 10.Pricol Surya         — near center (slight offset)
+        { x: 115, z: -35 },  // 11.Pricol Holdings      — inner right
+    ];
+    const nodePositions = fixedPositions.slice(0, companies.length);
 
     companies.forEach((comp, i) => {
-        const angle = (i / companies.length) * Math.PI * 2;
-        const radius = 60 + Math.random() * 20; // Reduced radius significantly so they don't move off screen
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
-        const y = (Math.random() - 0.5) * 30; // Reduced vertical spread
+        const x = nodePositions[i].x;
+        const z = nodePositions[i].z;
+        const y = -1 + (Math.random() * 2);   // low to floor
         const targetPos = new THREE.Vector3(x, y, z);
+        const accent = accentColors[i % accentColors.length];
 
-        const chipGeo = new THREE.BoxGeometry(8, 8, 8); // Invisible hit-box for raycasting
-        const chipMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }); // Fully invisible 3D box
-        const chip = new THREE.Mesh(chipGeo, chipMat);
-        chip.position.copy(targetPos);
-        chip.userData = { isNode: true, company: comp, id: i, baseY: targetPos.y };
-        circuitGroup.add(chip);
-        nodeMeshes.push(chip); // Add to optimized intersection set
+        // ── 3D LOGO ICON NODE ──
+        // Rings stay in Three.js for 3D glow; logo is an HTML <img> overlay
+        // Minimal 3D ring in Three.js — nearly invisible, just adds depth
+        // (HTML CSS .icon-glow-ring provides the main visible ring effect)
+        const cardGroup = new THREE.Group();
+        cardGroup.position.copy(targetPos);
 
-        const startPos = new THREE.Vector3(x > 0 ? 8 : -8, 0, z > 0 ? 8 : -8);
-        const circuit = createCircuitPath(startPos, targetPos);
+        // ── HTML logo image — bare logo only, no rings/circles ──
+        const logoDiv = document.createElement('div');
+        logoDiv.className = 'node-label node-logo-icon';
+        logoDiv.dataset.phase = Math.random() * Math.PI * 2;
+        logoDiv.style.opacity = '0';          // hidden until line reaches it
 
-        const lineGeo = new THREE.BufferGeometry().setFromPoints(circuit.pts);
-
-        // Background track (darker continuous line)
-        const trackMat = new THREE.LineBasicMaterial({ color: 0x00aaff, opacity: 0.2, transparent: true });
-        const trackLine = new THREE.Line(lineGeo, trackMat);
-        circuitGroup.add(trackLine);
-
-        // Continuous Flowing Spark Line (Electric Current)
-        const sparkMat = new THREE.LineDashedMaterial({
-            color: 0x00ffff,
-            dashSize: 10,
-            gapSize: 30,
-            opacity: 0.9,
-            transparent: true
-        });
-        const sparkLine = new THREE.Line(lineGeo, sparkMat);
-        sparkLine.computeLineDistances();
-        circuitGroup.add(sparkLine);
-
-        // Core bright spark for contrast
-        const coreMat = new THREE.LineDashedMaterial({
-            color: 0xffffff,
-            dashSize: 2,
-            gapSize: 38,
-            opacity: 1,
-            transparent: true
-        });
-        const coreLine = new THREE.Line(lineGeo, coreMat);
-        coreLine.computeLineDistances();
-        circuitGroup.add(coreLine);
-
-        animatedLines.push({ mesh: sparkLine, speed: 0.15 + Math.random() * 0.1 });
-        animatedLines.push({ mesh: coreLine, speed: 0.15 + Math.random() * 0.1 });
-
-        const label = document.createElement('div');
-        label.className = 'node-label floating-logo-wrap';
         if (comp.logo) {
             const img = document.createElement('img');
             img.src = comp.logo;
             img.alt = comp.title;
-            img.className = 'floating-company-logo';
-            label.appendChild(img);
-
-            const tooltip = document.createElement('div');
-            tooltip.className = 'company-tooltip';
-            tooltip.innerText = comp.title;
-            label.appendChild(tooltip);
-        } else {
-            label.innerText = comp.title;
+            img.className = 'icon-logo-img';
+            logoDiv.appendChild(img);
         }
+        labelsContainer.appendChild(logoDiv);
 
-        // Add random phase for floating animation
-        label.dataset.phase = Math.random() * Math.PI * 2;
+        // Title label below the icon (also starts hidden)
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'node-label node-3d-title';
+        nameDiv.innerHTML = `<span class="node-title-text">${comp.title}</span>`;
+        nameDiv.dataset.phase = logoDiv.dataset.phase;
+        nameDiv.style.opacity = '0';
+        labelsContainer.appendChild(nameDiv);
 
-        labelsContainer.appendChild(label);
-        nodes.push({ mesh: chip, label: label, data: comp });
+        circuitGroup.add(cardGroup);
+
+
+        // ── INVISIBLE RAYCAST BOX (larger hit zone) ──
+        const hitBox = new THREE.Mesh(
+            new THREE.BoxGeometry(16, 16, 8),
+            new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 })
+        );
+        hitBox.position.copy(targetPos);
+        hitBox.userData = { isNode: true, company: comp, id: i, baseY: targetPos.y, cardGroup };
+        circuitGroup.add(hitBox);
+        nodeMeshes.push(hitBox);
+
+        // ── PER-NODE POINT LIGHT — uniform soft white, not accent-colored ──
+        const nodeLight = new THREE.PointLight(0x88aacc, 1.2, 55);
+        nodeLight.position.copy(targetPos);
+        circuitGroup.add(nodeLight);
+
+        // ── CONNECTIVE LINES: Thick neon tubes radiating from center to icon ──
+        const origin = new THREE.Vector3(0, 1, 0);
+        const curve = createCircuitPath(origin, new THREE.Vector3(x, 1, z));
+        const curveLength = curve.getLength();
+        const tubeSegs = Math.max(20, Math.floor(curveLength / 2));
+
+        // Outer glow halo tube
+        const outerTube = buildTube(curve, 1.2, 0x7DF9FF, 0.4, tubeSegs);
+        circuitGroup.add(outerTube);
+
+        // Core tube (Electric Blue #7DF9FF)
+        const coreTube = buildTube(curve, 0.55, 0x7DF9FF, 0.95, tubeSegs);
+        circuitGroup.add(coreTube);
+
+        // Secondary mid glow layer
+        const midTube = buildTube(curve, 0.85, 0x7DF9FF, 0.7, tubeSegs);
+        circuitGroup.add(midTube);
+
+        // Electricity surge: bright white bolt that slides along the path
+        const surgeMat = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            emissive: 0x7DF9FF,
+            emissiveIntensity: 3.0,
+            transparent: true,
+            opacity: 1.0
+        });
+        const surgeHolder = new THREE.Group();
+        circuitGroup.add(surgeHolder);
+
+        // Track for animate loop
+        const flowData = {
+            curve, curveLength, surgeMat, surgeHolder,
+            offset: 0, // start from 0 for the flow effect
+            active: false, // Wait until animations start
+            tubes: [outerTube, coreTube, midTube],
+            opacities: [0.4, 0.95, 0.7] // Original opacities to restore to
+        };
+        animatedLines.push(flowData);
+
+        // Hide tubes initially for fade-in
+        // Removed: tubes start visible immediately
+        // flowData.tubes.forEach(t => {
+        //     t.material.opacity = 0;
+        //     t.material.needsUpdate = true;
+        // });
+
+        // ── PARTICLE DRIFT (Sparks floating upward around the tubes) ──
+        const sparkCount = 35;
+        const sparksGeo = new THREE.BufferGeometry();
+        const sparksPos = new Float32Array(sparkCount * 3);
+        const sparksPhase = new Float32Array(sparkCount);
+        const sparksP = new Float32Array(sparkCount); // parameter along curve
+
+        for (let s = 0; s < sparkCount; s++) {
+            sparksP[s] = Math.random();
+            const pt = curve.getPoint(sparksP[s]);
+            sparksPos[s * 3] = pt.x + (Math.random() - 0.5) * 5;
+            sparksPos[s * 3 + 1] = pt.y + (Math.random() - 0.5) * 3;
+            sparksPos[s * 3 + 2] = pt.z + (Math.random() - 0.5) * 5;
+            sparksPhase[s] = Math.random() * Math.PI * 2;
+        }
+        sparksGeo.setAttribute('position', new THREE.BufferAttribute(sparksPos, 3));
+        sparksGeo.setAttribute('phase', new THREE.BufferAttribute(sparksPhase, 1));
+        sparksGeo.setAttribute('tCurve', new THREE.BufferAttribute(sparksP, 1));
+
+        const sparksMat = new THREE.PointsMaterial({ color: 0x7DF9FF, size: 0.6, transparent: true, opacity: 0 });
+        const sparksPoints = new THREE.Points(sparksGeo, sparksMat);
+        circuitGroup.add(sparksPoints);
+
+        flowData.sparks = sparksPoints;
+
+        // ── SEQUENTIAL LOAD ANIMATION ──
+        // Icons appear when the tubes finish drawing to them!
+        // Center takes 2.5s to load. Lines start at 2.5s + staggered delay. Duration is 2.2s.
+        const sequenceDelay = 2.5 + (i * 0.1) + 2.2;
+        gsap.to(logoDiv, { opacity: 1, duration: 0.8, delay: sequenceDelay, ease: "power2.out" });
+        gsap.to(nameDiv, { opacity: 1, duration: 0.6, delay: sequenceDelay + 0.2, ease: "power2.out" });
+        gsap.fromTo(nodeLight, { intensity: 8 }, { intensity: 1.5, duration: 1.5, delay: sequenceDelay });
+
+        nodes.push({
+            mesh: hitBox,
+            cardGroup,
+            logoDiv,
+            nameDiv,
+            nodeLight,
+            data: comp,
+            accentColor: accent
+        });
     });
 
+    // ─── EXTRA RANDOM BACKGROUND TUBES ───
+    // These emulate traces that don't terminate at an icon but flow outwards
+    const extraTubeCount = 35;
+    for(let i = 0; i < extraTubeCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const rad = 150 + Math.random() * 250;
+        const ex = Math.cos(angle) * rad;
+        const ez = Math.sin(angle) * rad;
+        
+        const origin = new THREE.Vector3(0, 1, 0);
+        // Introduce small random offsets so they don't all originate precisely at 0,0,0
+        origin.x += (Math.random() - 0.5) * 15;
+        origin.z += (Math.random() - 0.5) * 15;
+        
+        const curve = createCircuitPath(origin, new THREE.Vector3(ex, 1, ez));
+        const curveLength = curve.getLength();
+        const tubeSegs = Math.max(15, Math.floor(curveLength / 3));
 
+        const outerTube = buildTube(curve, 0.8, 0x7DF9FF, 0.25, tubeSegs);
+        const coreTube = buildTube(curve, 0.35, 0x7DF9FF, 0.8, tubeSegs);
+        const midTube = buildTube(curve, 0.55, 0x7DF9FF, 0.5, tubeSegs);
+        
+        circuitGroup.add(outerTube);
+        circuitGroup.add(coreTube);
+        circuitGroup.add(midTube);
 
+        const surgeMat = new THREE.MeshStandardMaterial({ 
+            color: 0x000000,
+            emissive: 0x7DF9FF,
+            emissiveIntensity: 3.0,
+            transparent: true, 
+            opacity: 1.0 
+        });
+        const surgeHolder = new THREE.Group();
+        circuitGroup.add(surgeHolder);
+
+        // ── PARTICLE DRIFT for extra tubes ──
+        const sparkCount = 20;
+        const sparksGeo = new THREE.BufferGeometry();
+        const sparksPos = new Float32Array(sparkCount * 3);
+        const sparksPhase = new Float32Array(sparkCount);
+        const sparksP = new Float32Array(sparkCount);
+
+        for(let s = 0; s < sparkCount; s++) {
+            sparksP[s] = Math.random();
+            const pt = curve.getPoint(sparksP[s]);
+            sparksPos[s*3] = pt.x + (Math.random()-0.5)*5;
+            sparksPos[s*3+1] = pt.y + (Math.random()-0.5)*3;
+            sparksPos[s*3+2] = pt.z + (Math.random()-0.5)*5;
+            sparksPhase[s] = Math.random() * Math.PI * 2;
+        }
+        sparksGeo.setAttribute('position', new THREE.BufferAttribute(sparksPos, 3));
+        sparksGeo.setAttribute('phase', new THREE.BufferAttribute(sparksPhase, 1));
+        sparksGeo.setAttribute('tCurve', new THREE.BufferAttribute(sparksP, 1));
+        
+        const sparksMat = new THREE.PointsMaterial({ color: 0x7DF9FF, size: 0.6, transparent: true, opacity: 0 });
+        const sparksPoints = new THREE.Points(sparksGeo, sparksMat);
+        circuitGroup.add(sparksPoints);
+
+        const flowData = {
+            curve, curveLength, surgeMat, surgeHolder,
+            offset: Math.random(), // random start phase
+            active: false, 
+            tubes: [outerTube, coreTube, midTube],
+            opacities: [0.25, 0.8, 0.5],
+            sparks: sparksPoints
+        };
+        
+        flowData.tubes.forEach(t => {
+            t.material.opacity = 0;
+            t.material.transparent = true;
+        });
+
+        animatedLines.push(flowData);
+    }
+
+    // ─── RAYCASTER + INTERACTION ───────────────────────────────────────────────
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let hoveredNode = null;
@@ -299,68 +663,28 @@ function init3DHero() {
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
     });
 
-    const cardModal = document.getElementById('card-modal');
-    const cardContent = document.getElementById('card-content');
-
-    // Use a flag to track if we're currently in a camera transition
-    let isTransitioning = false;
-
-    function showCard(comp) {
-        cardContent.innerHTML = comp.html;
-        cardModal.classList.add('active');
-    }
-
-    function hideCard() {
-        cardModal.classList.remove('active');
-        isTransitioning = true;
-        controls.enabled = false; // Stop user flight fight
-        gsap.to(camera.position, {
-            x: 0, y: 30, z: 130,
-            duration: 1.5,
-            ease: "power3.inOut",
-            onComplete: () => {
-                isTransitioning = false;
-                controls.enabled = true; // Re-enable
-            }
-        });
-        gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.5, ease: "power3.inOut" });
-    }
-
-    document.getElementById('close-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        hideCard();
-    });
-
+    // click on a 3D logo icon → smooth-scroll to that company's section
     window.addEventListener('click', (e) => {
-        // Ignore clicks on buttons/links or if we are already transitioning
         if (e.target.closest('button') || e.target.closest('a')) return;
-
         if (hoveredNode) {
-            isTransitioning = true;
-            controls.enabled = false;
-            showCard(hoveredNode.userData.company);
-            const targetPos = hoveredNode.position.clone();
-            targetPos.y += 15;
-            targetPos.z += 40;
+            const sectionId = hoveredNode.userData.company.id;
+            const section = document.getElementById(sectionId);
+            if (section) {
+                // hero-3d is pinned, so offset from body top
+                const heroH = document.getElementById('hero-3d').offsetHeight;
+                // Calculate scroll position to place the center of the section into the center of the viewport
+                const sectionCenter = heroH + section.offsetTop + (section.offsetHeight / 2);
+                const viewportCenter = window.innerHeight / 2;
 
-            gsap.to(camera.position, {
-                x: targetPos.x, y: targetPos.y, z: targetPos.z,
-                duration: 1.5,
-                ease: "power3.inOut",
-                onComplete: () => {
-                    isTransitioning = false;
-                    controls.enabled = true;
-                }
-            });
-            gsap.to(controls.target, {
-                x: hoveredNode.position.x, y: hoveredNode.position.y, z: hoveredNode.position.z,
-                duration: 1.5,
-                ease: "power3.inOut"
-            });
-        } else if (!cardModal.classList.contains('active') && !isTransitioning) {
-            // Only reset if modal is not active and we are not in the middle of a motion
-            gsap.to(camera.position, { x: 0, y: 30, z: 130, duration: 1.5, ease: "power3.inOut" });
-            gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.5, ease: "power3.inOut" });
+                window.scrollTo({
+                    top: sectionCenter - viewportCenter,
+                    behavior: 'smooth'
+                });
+            }
+        } else {
+            // Reset to default top-down 3D view
+            gsap.to(camera.position, { x: 0, y: 220, z: 100, duration: 1.0, ease: 'power3.inOut' });
+            gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.0, ease: 'power3.inOut' });
         }
     });
 
@@ -370,73 +694,185 @@ function init3DHero() {
         camera.updateProjectionMatrix();
         hero3DHeight = hero3D.clientHeight;
         renderer.setSize(window.innerWidth, hero3DHeight);
+        composer.setSize(window.innerWidth, hero3DHeight);
     });
 
+    // ─── ANIMATION LOOP ────────────────────────────────────────────────────────
     const clock = new THREE.Clock();
 
     function animate() {
         requestAnimationFrame(animate);
-        const delta = clock.getDelta();
+        const time = clock.getElapsedTime();
+        clock.getDelta(); // consume delta
 
-        circuitGroup.rotation.y += 0.0005;
-
+        // Electricity surge tubes: slide a short bright tube along each path
         animatedLines.forEach(l => {
-            l.mesh.material.dashOffset -= l.speed;
+            if (!l.active) return;
+            const speed = 0.35; // normalized 0–1 per second
+            const surgeLen = 0.22; // 22% of the total curve length per surge segment
+
+            // Advance offset and wrap
+            l.offset = (l.offset + speed * (1 / 60)) % 1;
+
+            // Build a sub-curve of the surge segment
+            const t0 = l.offset;
+            const t1 = Math.min(t0 + surgeLen, 1.0);
+
+            // Clear old surge mesh
+            while (l.surgeHolder.children.length) {
+                const old = l.surgeHolder.children[0];
+                old.geometry.dispose();
+                l.surgeHolder.remove(old);
+            }
+
+            if (t1 > t0) {
+                // Sub-curve points
+                const subPts = [];
+                const steps = 16;
+                for (let s = 0; s <= steps; s++) {
+                    subPts.push(l.curve.getPoint(t0 + (t1 - t0) * (s / steps)));
+                }
+                const subCurve = new THREE.CatmullRomCurve3(subPts);
+
+                // Bright cyan-white core surge tube
+                const surgeGeo = new THREE.TubeGeometry(subCurve, 12, 0.6, 5, false);
+                const surgeMesh = new THREE.Mesh(surgeGeo, l.surgeMat);
+                l.surgeHolder.add(surgeMesh);
+
+                // Outer electric glow bloom around the surge
+                const glowSurgeGeo = new THREE.TubeGeometry(subCurve, 12, 1.3, 5, false);
+                const glowSurgeMat = new THREE.MeshStandardMaterial({
+                    color: 0x000000,
+                    emissive: 0x7DF9FF,
+                    emissiveIntensity: 1.5,
+                    transparent: true,
+                    opacity: 0.5 + Math.sin(Date.now() * 0.01) * 0.15
+                });
+                const glowSurgeMesh = new THREE.Mesh(glowSurgeGeo, glowSurgeMat);
+                l.surgeHolder.add(glowSurgeMesh);
+            }
+
+            // Flicker: like electric discharge
+            l.surgeMat.opacity = 0.85 + Math.sin(Date.now() * 0.05) * 0.15;
+            l.surgeMat.emissive.setHex(Math.sin(Date.now() * 0.02) > 0.3 ? 0xffffff : 0x7DF9FF);
+
+            // Drift sparks upward
+            if (l.sparks && l.sparks.material.opacity > 0) {
+                const pos = l.sparks.geometry.attributes.position;
+                const phaseArr = l.sparks.geometry.attributes.phase.array;
+                const pArr = l.sparks.geometry.attributes.tCurve.array;
+                for (let s = 0; s < pos.count; s++) {
+                    pos.array[s * 3 + 1] += 0.035; // drift UP
+                    pos.array[s * 3] += Math.sin(time * 2 + phaseArr[s]) * 0.015; // sway X
+                    pos.array[s * 3 + 2] += Math.cos(time * 2 + phaseArr[s]) * 0.015; // sway Z
+
+                    // Reset if it goes too high (say > 4 units above curve pt)
+                    const pt = l.curve.getPoint(pArr[s]);
+                    if (pos.array[s * 3 + 1] > pt.y + 4) {
+                        pos.array[s * 3] = pt.x + (Math.random() - 0.5) * 5;
+                        pos.array[s * 3 + 1] = pt.y - 1 + Math.random() * 2;
+                        pos.array[s * 3 + 2] = pt.z + (Math.random() - 0.5) * 5;
+                    }
+                }
+                pos.needsUpdate = true;
+            }
         });
 
-        // Optimized raycasting: only check against company nodes, not background lines or geometry
-        raycaster.setFromCamera(mouse, camera);
+        // Flat chip group bob
+        chipGroup.position.y = Math.sin(time * 0.8) * 0.3;
+        orbitRing.rotation.z = time * 0.2;
 
+
+        // Raycasting
+        raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(nodeMeshes);
-        let found = null;
-        if (intersects.length > 0) {
-            found = intersects[0].object;
-        }
+        const found = intersects.length > 0 ? intersects[0].object : null;
 
         if (found !== hoveredNode) {
-            if (hoveredNode) hoveredNode.material.emissive.setHex(0x001144);
+            // Restore previous node
+            if (hoveredNode) {
+                const prev = nodes.find(n => n.mesh === hoveredNode);
+                if (prev) {
+                    gsap.to(prev.cardGroup.scale, { x: 1, y: 1, z: 1, duration: 0.3 });
+                    prev.nodeLight.intensity = 1.5;
+                    prev.logoDiv.classList.remove('hovered');
+                }
+            }
             hoveredNode = found;
             if (hoveredNode) {
-                hoveredNode.material.emissive.setHex(0x0088ff);
+                const cur = nodes.find(n => n.mesh === hoveredNode);
+                if (cur) {
+                    gsap.to(cur.cardGroup.scale, { x: 1.15, y: 1.15, z: 1.15, duration: 0.3 });
+                    cur.nodeLight.intensity = 5;
+                    cur.logoDiv.classList.add('hovered');
+                }
                 hero3D.style.cursor = 'pointer';
             } else {
                 hero3D.style.cursor = 'default';
             }
         }
 
-        const time = clock.getElapsedTime();
+        // Animate each node
+        nodes.forEach((node) => {
+            const phase = parseFloat(node.nameDiv.dataset.phase);
+            const floatOffset = Math.sin(time * 1.8 + phase) * 2.2;
 
-        nodes.forEach((node, index) => {
-            const phase = parseFloat(node.label.dataset.phase);
-            const floatOffset = Math.sin(time * 2 + phase) * 2; // Unique float per logo
-
-            // Float the entire 3D node box
+            // Float the 3D ring group + hitBox + light together
+            node.cardGroup.position.y = node.mesh.userData.baseY + floatOffset;
             node.mesh.position.y = node.mesh.userData.baseY + floatOffset;
+            node.nodeLight.position.y = node.mesh.userData.baseY + floatOffset;
 
-            // Anchor the 2D logo to the static/base position of the box, so it doesn't bounce with the box
-            const pos = new THREE.Vector3(node.mesh.position.x, node.mesh.userData.baseY, node.mesh.position.z);
+            // Billboard: rings always face camera
+            node.cardGroup.lookAt(camera.position);
+            // Gentle Z wobble
+            node.cardGroup.rotateZ(Math.sin(time * 0.4 + phase) * 0.005);
 
-            pos.applyMatrix4(circuitGroup.matrixWorld);
-            pos.project(camera);
-            if (pos.z < 1 && pos.z > -1) {
-                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (pos.y * -0.5 + 0.5) * hero3DHeight;
-                node.label.style.transform = `translate(-50%, -50%) translate(${x}px, ${y - 45}px)`;
-                node.label.classList.add('visible');
+            // ── Project HTML logo image to screen ──
+            const iconPos = new THREE.Vector3(
+                node.mesh.position.x,
+                node.mesh.userData.baseY + floatOffset,
+                node.mesh.position.z
+            );
+            iconPos.applyMatrix4(circuitGroup.matrixWorld);
+            iconPos.project(camera);
+            if (iconPos.z < 1 && iconPos.z > -1) {
+                const ix = (iconPos.x * 0.5 + 0.5) * window.innerWidth;
+                const iy = (iconPos.y * -0.5 + 0.5) * hero3DHeight;
+                node.logoDiv.style.transform = `translate(-50%, -50%) translate(${ix}px, ${iy}px)`;
+                node.logoDiv.classList.add('visible');
             } else {
-                node.label.classList.remove('visible');
+                node.logoDiv.classList.remove('visible');
+            }
+
+            // ── Project name label — placed below the icon on screen ──
+            // Use a slight Y offset below the icon's screen position
+            const labelPos = new THREE.Vector3(
+                node.mesh.position.x, node.mesh.userData.baseY + floatOffset - 8, node.mesh.position.z
+            );
+            labelPos.applyMatrix4(circuitGroup.matrixWorld);
+            labelPos.project(camera);
+
+            // Always show name label when icon is visible (clamp to screen edges)
+            const lsxRaw = (labelPos.x * 0.5 + 0.5) * window.innerWidth;
+            const lsyRaw = (labelPos.y * -0.5 + 0.5) * hero3DHeight;
+            // Clamp so labels at the very edge don't disappear
+            const lsx = Math.min(Math.max(lsxRaw, 80), window.innerWidth - 80);
+            const lsy = Math.min(Math.max(lsyRaw, 20), hero3DHeight - 20);
+            if (labelPos.z < 1 && labelPos.z > -1) {
+                node.nameDiv.style.transform = `translate(-50%, 0) translate(${lsx}px, ${lsy}px)`;
+                node.nameDiv.classList.add('visible');
+            } else {
+                node.nameDiv.classList.remove('visible');
             }
         });
 
-        // Animate floating logo via HTML projection
-        const floatY = 15 + Math.sin(time * 2) * 1.5; // Float height
-        const logoPos = new THREE.Vector3(0, floatY, 0);
-        logoPos.applyMatrix4(circuitGroup.matrixWorld);
-        logoPos.project(camera);
-
-        if (logoPos.z < 1 && logoPos.z > -1) {
-            const cx = (logoPos.x * 0.5 + 0.5) * window.innerWidth;
-            const cy = (logoPos.y * -0.5 + 0.5) * hero3DHeight;
+        // Center logo — fixed ON the chip top surface (Y=2.9, very flat)
+        const chipTopPos = new THREE.Vector3(0, 2.9 + chipGroup.position.y, 0);
+        chipTopPos.applyMatrix4(circuitGroup.matrixWorld);
+        chipTopPos.project(camera);
+        if (chipTopPos.z < 1 && chipTopPos.z > -1) {
+            const cx = (chipTopPos.x * 0.5 + 0.5) * window.innerWidth;
+            const cy = (chipTopPos.y * -0.5 + 0.5) * hero3DHeight;
             centerLogoWrap.style.transform = `translate(-50%, -50%) translate(${cx}px, ${cy}px)`;
             centerLogoWrap.classList.add('visible');
         } else {
@@ -444,19 +880,44 @@ function init3DHero() {
         }
 
         controls.update();
-        renderer.render(scene, camera);
+        composer.render();
     }
 
-    gsap.from(cpu.scale, { x: 0, y: 0, z: 0, duration: 2, ease: "elastic.out(1, 0.4)" });
-    cpuRing.scale.set(0, 0, 0);
-    gsap.to(cpuRing.scale, { x: 1, y: 1, z: 1, duration: 2, delay: 0.5, ease: "power3.out" });
+    // Entry animations
+    // Center logo loads slowly first
+    gsap.from(chipGroup.scale, { x: 0, y: 0, z: 0, duration: 2.5, ease: 'power3.out' });
+    gsap.from(orbitRing.scale, { x: 0, y: 0, z: 0, duration: 2.2, delay: 0.2, ease: 'power2.out' });
+    centerLogoWrap.style.opacity = '0';
+    gsap.to(centerLogoWrap, { opacity: 1, duration: 2.0, delay: 0.5, ease: 'power2.inOut' });
 
-    nodes.forEach((n, i) => {
-        gsap.from(n.mesh.scale, {
-            x: 0, y: 0, z: 0,
-            duration: 1.5,
-            delay: 1 + i * 0.1,
-            ease: "back.out(1.5)"
+    // 1. Draw circuit dashed lines
+    gsap.to([bgTeal1, bgTeal2, bgCyan, bgDim, bgOrange, bgRed], {
+        dashOffset: 0,
+        duration: 3.8,
+        ease: "power2.inOut",
+        delay: 1.0 // shortly after center starts
+    });
+
+    // 2. Fade in connecting tubes sequentially and then start flowing surge
+    animatedLines.forEach((lineData, idx) => {
+        const startDelay = 2.5 + (idx * 0.08); // faster stagger
+
+        // Fade in the wire base lines
+        lineData.tubes.forEach((t, i) => {
+            gsap.to(t.material, {
+                opacity: lineData.opacities[i],
+                duration: 0.8,
+                delay: startDelay,
+                ease: "power2.out"
+            });
+        });
+
+        // Start the flowing surge shortly after wires appear
+        gsap.delayedCall(startDelay + 0.5, () => {
+            lineData.active = true;
+            if (lineData.sparks) {
+                gsap.to(lineData.sparks.material, { opacity: 0.8, duration: 1.5 });
+            }
         });
     });
 
@@ -479,7 +940,8 @@ function initGSAP() {
         const center = width / 2;
 
         let startX = center;
-        let startY = window.innerHeight / 2; // Start exactly at the middle height of the 100vh hero section
+        // Path starts at the very top of content-container so its origin exactly maps to the center of the 3D Hero when 'top center' ScrollTrigger hits
+        let startY = 0;
 
         // Fallback for getting symbol dimensions to use for path offset
         const size = 110; // Increased size to make the side scroll icon bigger
@@ -511,11 +973,13 @@ function initGSAP() {
             let targetX = center;
 
             if (section.classList.contains('intro')) {
-                return;
+                targetX = center;
             } else if (section.classList.contains('left')) {
-                targetX = width * 0.8;
+                // S-curve weave: LEFT card → tracker swings to opposite (RIGHT)
+                targetX = width * 0.82;
             } else if (section.classList.contains('right')) {
-                targetX = width * 0.2;
+                // S-curve weave: RIGHT card → tracker swings to opposite (LEFT)
+                targetX = width * 0.18;
             } else {
                 targetX = center;
             }
@@ -557,6 +1021,17 @@ function initGSAP() {
         gsap.killTweensOf("#path");
         gsap.killTweensOf("#tracker-text");
 
+        // Hide path and tracker dynamically until it officially enters from the center logo
+        gsap.set(["#tracker", "#path", "#tracker-text"], { opacity: 0 });
+
+        ScrollTrigger.create({
+            trigger: ".content-container",
+            start: "top center", // Precisely when startY=0 hits the 3D logo in viewport
+            end: "bottom center",
+            onEnter: () => gsap.to(["#tracker", "#path", "#tracker-text"], { opacity: 1, duration: 0.4 }),
+            onLeaveBack: () => gsap.to(["#tracker", "#path", "#tracker-text"], { opacity: 0, duration: 0.3 })
+        });
+
         gsap.to("#tracker", {
             motionPath: {
                 path: "#path",
@@ -566,26 +1041,14 @@ function initGSAP() {
             },
             ease: "none",
             scrollTrigger: {
-                trigger: "body",
-                start: "top top",
-                end: "bottom bottom",
+                trigger: ".content-container",
+                start: "top center",
+                end: "bottom center",
                 scrub: 1
             }
         });
 
         const trackerText = document.getElementById("tracker-text");
-
-        ScrollTrigger.create({
-            trigger: "body", // Fade in tracking text when page scrolling starts
-            start: "100px top",
-            end: "top top",
-            onEnter: () => {
-                gsap.to('#tracker-text', { opacity: 1, duration: 0.5 });
-            },
-            onLeaveBack: () => {
-                gsap.to('#tracker-text', { opacity: 0, duration: 0.5 });
-            }
-        });
 
         const sectionData = {
             'intro': { title: 'Pricol', logo: 'images/logo_icon.png' },
@@ -638,8 +1101,8 @@ function initGSAP() {
             ease: "none",
             scrollTrigger: {
                 trigger: ".content-container",
-                start: "top top",
-                end: "bottom bottom",
+                start: "top center",
+                end: "bottom center",
                 scrub: 1
             }
         });

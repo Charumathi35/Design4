@@ -27,9 +27,9 @@
                 <p class="subtitle">Interactive 3D Ecosystem</p>
             </div> -->
 
-            <div class="instruction">Drag to Rotate &bull; Click Nodes</div>
+            <!-- <div class="instruction">Drag to Rotate &bull; Click Logo to Explore</div> -->
 
-            <div id="card-modal" class="card-modal">
+            <div id="card-modal" class="card-modal" style="display:none;">
                 <button id="close-btn">&times;</button>
                 <div id="card-content"></div>
             </div>
@@ -50,6 +50,8 @@
 
         <!-- Background Images -->
         <div id="bg-image-container">
+            <img id="bg-intro" class="bg-img" src="images/logo_icon.png" alt="Pricol"
+                style="object-fit: contain; padding: 20%; filter: brightness(0.15) blur(2px);" />
             <!-- Removed 50th Year background -->
             <img id="bg-pricol-limited" class="bg-img" src="images/limited-gen.png" alt="Automotive" />
             <img id="bg-pricol-precision" class="bg-img" src="images/precision-gen.png" alt="Precision" />
@@ -89,12 +91,11 @@
             </g>
         </svg>
 
-        <section class="intro" id="intro" style="display:none;">
+        <!-- <section class="intro" id="intro">
             <div class="intro-layout">
                 <div class="intro-left">
-                    <h3>WELCOME TO</h3>
                     <img src="images/logo.png" alt="Pricol Holdings" class="main-logo" />
-                    <!-- 50th Year Image moved to background -->
+                    50th Year Image moved to background 
                     <p class="intro-desc">Established in 1975, Pricol Holdings is a leading business conglomerate
                         Headquartered in Coimbatore, India. Pricol commenced its operations in the field of Automotive
                         Instruments and today is a leading player in the fields of Automotive Components & Solutions,
@@ -102,23 +103,8 @@
                         employs more than 5500 professional workforce across the globe with a turnover of over INR 3000
                         Crore and a list of award winning brands under its umbrella.</p>
                 </div>
-                <!-- <div class="intro-right">
-                    <div class="group-companies-card">
-                        <h3>GROUP COMPANIES</h3>
-                        <ul>
-                            <li>PRICOL LIMITED</li>
-                            <li>PRICOL PRECISION PRODUCTS</li>
-                            <li>PRICOL ENGINEERING INDUSTRIES</li>
-                            <li>PRICOL LOGISTICS</li>
-                            <li>PRICOL TRAVEL</li>
-                            <li>PRICOL GOURMET</li>
-                            <li>PRICOL RETREATS</li>
-                        </ul>
-                    </div>
-                </div> -->
             </div>
-
-        </section>
+        </section> -->
 
         <!-- Added 'waypoint' class for tighter JS targeting if needed -->
         <!-- 1. Pricol Limited (Left) -->
@@ -334,6 +320,12 @@
     <!-- GSAP Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/MotionPathPlugin.min.js"></script>
