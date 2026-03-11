@@ -16,19 +16,13 @@
 <body>
 
     <!-- 3D Hero Section -->
-    <div id="hero-3d" style="position: relative; width: 100%; height: 100vh; overflow: hidden; background: #050a15;">
+    <div id="hero-3d"
+        style="position: sticky; top: 0; z-index: 1; width: 100%; height: 100vh; overflow: hidden; background: #050a15;">
         <!-- 3D Scene Container -->
         <div id="canvas-container"></div>
 
         <!-- UI Overlay Layer -->
         <div id="ui-layer">
-            <!-- <div class="header-overlay">
-                <img src="images/logo.png" alt="Pricol Logo" class="main-logo-ui">
-                <p class="subtitle">Interactive 3D Ecosystem</p>
-            </div> -->
-
-            <!-- <div class="instruction">Drag to Rotate &bull; Click Logo to Explore</div> -->
-
             <div id="card-modal" class="card-modal" style="display:none;">
                 <button id="close-btn">&times;</button>
                 <div id="card-content"></div>
@@ -46,12 +40,10 @@
     </div> <!-- End of hero-3d -->
 
     <!-- Original Content Container -->
-    <div class="content-container" id="content-container">
+    <div class="content-container" id="content-container" style="position: relative; z-index: 10;">
 
         <!-- Background Images -->
         <div id="bg-image-container">
-            <img id="bg-intro" class="bg-img" src="images/logo_icon.png" alt="Pricol"
-                style="object-fit: contain; padding: 20%; filter: brightness(0.15) blur(2px);" />
             <!-- Removed 50th Year background -->
             <img id="bg-pricol-limited" class="bg-img" src="images/limited-gen.png" alt="Automotive" />
             <img id="bg-pricol-precision" class="bg-img" src="images/precision-gen.png" alt="Precision" />
@@ -90,21 +82,6 @@
                     font-weight="bold" opacity="0">Pricol</text>
             </g>
         </svg>
-
-        <!-- <section class="intro" id="intro">
-            <div class="intro-layout">
-                <div class="intro-left">
-                    <img src="images/logo.png" alt="Pricol Holdings" class="main-logo" />
-                    50th Year Image moved to background 
-                    <p class="intro-desc">Established in 1975, Pricol Holdings is a leading business conglomerate
-                        Headquartered in Coimbatore, India. Pricol commenced its operations in the field of Automotive
-                        Instruments and today is a leading player in the fields of Automotive Components & Solutions,
-                        Engineering, Hospitality, Corporate & Leisure Travel, Cargo, and Realty. Today, the group
-                        employs more than 5500 professional workforce across the globe with a turnover of over INR 3000
-                        Crore and a list of award winning brands under its umbrella.</p>
-                </div>
-            </div>
-        </section> -->
 
         <!-- Added 'waypoint' class for tighter JS targeting if needed -->
         <!-- 1. Pricol Limited (Left) -->

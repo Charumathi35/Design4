@@ -218,13 +218,13 @@ function init3DHero() {
     bgCircuitGroup.position.y = -2.2;
     circuitGroup.add(bgCircuitGroup);
 
-    // ─── Primary neon teal/cyan trace materials (main colors in reference image)
-    const bgTeal1 = new THREE.LineDashedMaterial({ color: 0x00ffcc, opacity: 0.85, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
-    const bgTeal2 = new THREE.LineDashedMaterial({ color: 0x00ddaa, opacity: 0.55, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
-    const bgCyan = new THREE.LineDashedMaterial({ color: 0x00eeff, opacity: 0.65, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
-    const bgDim = new THREE.LineDashedMaterial({ color: 0x007755, opacity: 0.28, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
-    const bgOrange = new THREE.LineDashedMaterial({ color: 0xff4400, opacity: 0.80, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
-    const bgRed = new THREE.LineDashedMaterial({ color: 0xff2200, opacity: 0.55, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    // ─── Primary neon teal/cyan trace materials (made considerably darker and neater)
+    const bgTeal1 = new THREE.LineDashedMaterial({ color: 0x0088aa, opacity: 0.35, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgTeal2 = new THREE.LineDashedMaterial({ color: 0x006688, opacity: 0.25, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgCyan = new THREE.LineDashedMaterial({ color: 0x004466, opacity: 0.20, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgDim = new THREE.LineDashedMaterial({ color: 0x003344, opacity: 0.15, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgOrange = new THREE.LineDashedMaterial({ color: 0xaa3300, opacity: 0.30, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
+    const bgRed = new THREE.LineDashedMaterial({ color: 0x881100, opacity: 0.20, transparent: true, dashSize: 2000, gapSize: 2000, dashOffset: 2000 });
 
     // Via / pad geometries and materials
     const viaGeo = new THREE.RingGeometry(0.4, 1.0, 12);
@@ -392,9 +392,9 @@ function init3DHero() {
         geo.computeVertexNormals();
 
         const mat = new THREE.MeshStandardMaterial({
-            color: 0x000000,           // Base color is black
-            emissive: color,           // The "glow" color is your light blue
-            emissiveIntensity: 1.0,    // Boost the "brightness" past 1.0
+            color: color,              // Base color matches the flow
+            emissive: color,           // The "glow" color
+            emissiveIntensity: 1.5,    // Boost to ensure it is very visibly cyan
             transparent: true,
             opacity: opacity
         });
@@ -494,21 +494,21 @@ function init3DHero() {
         const tubeSegs = Math.max(20, Math.floor(curveLength / 2));
 
         // Outer glow halo tube
-        const outerTube = buildTube(curve, 1.2, 0x7DF9FF, 0.4, tubeSegs);
+        const outerTube = buildTube(curve, 1.2, 0x00ffff, 0.4, tubeSegs);
         circuitGroup.add(outerTube);
 
-        // Core tube (Electric Blue #7DF9FF)
-        const coreTube = buildTube(curve, 0.55, 0x7DF9FF, 0.95, tubeSegs);
+        // Core tube (Solid current color)
+        const coreTube = buildTube(curve, 0.55, 0x00ffff, 0.95, tubeSegs);
         circuitGroup.add(coreTube);
 
         // Secondary mid glow layer
-        const midTube = buildTube(curve, 0.85, 0x7DF9FF, 0.7, tubeSegs);
+        const midTube = buildTube(curve, 0.85, 0x00ffff, 0.7, tubeSegs);
         circuitGroup.add(midTube);
 
-        // Electricity surge: bright white bolt that slides along the path
+        // Electricity surge: bright bolt that slides along the path
         const surgeMat = new THREE.MeshStandardMaterial({
-            color: 0x000000,
-            emissive: 0x7DF9FF,
+            color: 0x00ffff,
+            emissive: 0x00ffff,
             emissiveIntensity: 3.0,
             transparent: true,
             opacity: 1.0
@@ -526,45 +526,27 @@ function init3DHero() {
         };
         animatedLines.push(flowData);
 
-        // Hide tubes initially for fade-in
-        // Removed: tubes start visible immediately
-        // flowData.tubes.forEach(t => {
-        //     t.material.opacity = 0;
-        //     t.material.needsUpdate = true;
-        // });
+        // Hide tubes initially for fade-in sequence
+        flowData.tubes.forEach(t => {
+            t.material.opacity = 0;
+            t.material.transparent = true;
+        });
 
-        // ── PARTICLE DRIFT (Sparks floating upward around the tubes) ──
-        const sparkCount = 35;
-        const sparksGeo = new THREE.BufferGeometry();
-        const sparksPos = new Float32Array(sparkCount * 3);
-        const sparksPhase = new Float32Array(sparkCount);
-        const sparksP = new Float32Array(sparkCount); // parameter along curve
-
-        for (let s = 0; s < sparkCount; s++) {
-            sparksP[s] = Math.random();
-            const pt = curve.getPoint(sparksP[s]);
-            sparksPos[s * 3] = pt.x + (Math.random() - 0.5) * 5;
-            sparksPos[s * 3 + 1] = pt.y + (Math.random() - 0.5) * 3;
-            sparksPos[s * 3 + 2] = pt.z + (Math.random() - 0.5) * 5;
-            sparksPhase[s] = Math.random() * Math.PI * 2;
-        }
-        sparksGeo.setAttribute('position', new THREE.BufferAttribute(sparksPos, 3));
-        sparksGeo.setAttribute('phase', new THREE.BufferAttribute(sparksPhase, 1));
-        sparksGeo.setAttribute('tCurve', new THREE.BufferAttribute(sparksP, 1));
-
-        const sparksMat = new THREE.PointsMaterial({ color: 0x7DF9FF, size: 0.6, transparent: true, opacity: 0 });
-        const sparksPoints = new THREE.Points(sparksGeo, sparksMat);
-        circuitGroup.add(sparksPoints);
-
-        flowData.sparks = sparksPoints;
+        // Sparks removed to keep connecting lines neat and clean
 
         // ── SEQUENTIAL LOAD ANIMATION ──
-        // Icons appear when the tubes finish drawing to them!
-        // Center takes 2.5s to load. Lines start at 2.5s + staggered delay. Duration is 2.2s.
-        const sequenceDelay = 2.5 + (i * 0.1) + 2.2;
-        gsap.to(logoDiv, { opacity: 1, duration: 0.8, delay: sequenceDelay, ease: "power2.out" });
-        gsap.to(nameDiv, { opacity: 1, duration: 0.6, delay: sequenceDelay + 0.2, ease: "power2.out" });
-        gsap.fromTo(nodeLight, { intensity: 8 }, { intensity: 1.5, duration: 1.5, delay: sequenceDelay });
+        // Center takes 0.6s to load. Lines start shortly after.
+        const stagger = i * 0.1; // Stagger each line and icon so they don't fire exactly uniformly
+        const lineDelay = 0.7 + stagger; // Start lines flowing
+        flowData.lineDelay = lineDelay; // synchronize the line start
+
+        // With the speed increased (1.5), it takes ~0.66 seconds for a flow to complete a line. 
+        // 0.7s baseline + 0.66s travel + stagger = icons appear exactly right as the current hits them!
+        const sequenceDelay = 1.35 + stagger; // Icons pop synchronously as the current strikes 
+
+        gsap.to(logoDiv, { opacity: 1, duration: 0.5, delay: sequenceDelay, ease: "back.out(1.5)" });
+        gsap.to(nameDiv, { opacity: 1, duration: 0.5, delay: sequenceDelay + 0.1, ease: "power2.out" });
+        gsap.fromTo(nodeLight, { intensity: 8 }, { intensity: 1.5, duration: 1.0, delay: sequenceDelay });
 
         nodes.push({
             mesh: hitBox,
@@ -578,81 +560,8 @@ function init3DHero() {
     });
 
     // ─── EXTRA RANDOM BACKGROUND TUBES ───
-    // These emulate traces that don't terminate at an icon but flow outwards
-    const extraTubeCount = 35;
-    for(let i = 0; i < extraTubeCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const rad = 150 + Math.random() * 250;
-        const ex = Math.cos(angle) * rad;
-        const ez = Math.sin(angle) * rad;
-        
-        const origin = new THREE.Vector3(0, 1, 0);
-        // Introduce small random offsets so they don't all originate precisely at 0,0,0
-        origin.x += (Math.random() - 0.5) * 15;
-        origin.z += (Math.random() - 0.5) * 15;
-        
-        const curve = createCircuitPath(origin, new THREE.Vector3(ex, 1, ez));
-        const curveLength = curve.getLength();
-        const tubeSegs = Math.max(15, Math.floor(curveLength / 3));
-
-        const outerTube = buildTube(curve, 0.8, 0x7DF9FF, 0.25, tubeSegs);
-        const coreTube = buildTube(curve, 0.35, 0x7DF9FF, 0.8, tubeSegs);
-        const midTube = buildTube(curve, 0.55, 0x7DF9FF, 0.5, tubeSegs);
-        
-        circuitGroup.add(outerTube);
-        circuitGroup.add(coreTube);
-        circuitGroup.add(midTube);
-
-        const surgeMat = new THREE.MeshStandardMaterial({ 
-            color: 0x000000,
-            emissive: 0x7DF9FF,
-            emissiveIntensity: 3.0,
-            transparent: true, 
-            opacity: 1.0 
-        });
-        const surgeHolder = new THREE.Group();
-        circuitGroup.add(surgeHolder);
-
-        // ── PARTICLE DRIFT for extra tubes ──
-        const sparkCount = 20;
-        const sparksGeo = new THREE.BufferGeometry();
-        const sparksPos = new Float32Array(sparkCount * 3);
-        const sparksPhase = new Float32Array(sparkCount);
-        const sparksP = new Float32Array(sparkCount);
-
-        for(let s = 0; s < sparkCount; s++) {
-            sparksP[s] = Math.random();
-            const pt = curve.getPoint(sparksP[s]);
-            sparksPos[s*3] = pt.x + (Math.random()-0.5)*5;
-            sparksPos[s*3+1] = pt.y + (Math.random()-0.5)*3;
-            sparksPos[s*3+2] = pt.z + (Math.random()-0.5)*5;
-            sparksPhase[s] = Math.random() * Math.PI * 2;
-        }
-        sparksGeo.setAttribute('position', new THREE.BufferAttribute(sparksPos, 3));
-        sparksGeo.setAttribute('phase', new THREE.BufferAttribute(sparksPhase, 1));
-        sparksGeo.setAttribute('tCurve', new THREE.BufferAttribute(sparksP, 1));
-        
-        const sparksMat = new THREE.PointsMaterial({ color: 0x7DF9FF, size: 0.6, transparent: true, opacity: 0 });
-        const sparksPoints = new THREE.Points(sparksGeo, sparksMat);
-        circuitGroup.add(sparksPoints);
-
-        const flowData = {
-            curve, curveLength, surgeMat, surgeHolder,
-            offset: Math.random(), // random start phase
-            active: false, 
-            tubes: [outerTube, coreTube, midTube],
-            opacities: [0.25, 0.8, 0.5],
-            sparks: sparksPoints
-        };
-        
-        flowData.tubes.forEach(t => {
-            t.material.opacity = 0;
-            t.material.transparent = true;
-        });
-
-        animatedLines.push(flowData);
-    }
-
+    // Removed to keep the area neat and prevent "downside placed lines" clashing with main nodes.
+    
     // ─── RAYCASTER + INTERACTION ───────────────────────────────────────────────
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -705,18 +614,20 @@ function init3DHero() {
         const time = clock.getElapsedTime();
         clock.getDelta(); // consume delta
 
-        // Electricity surge tubes: slide a short bright tube along each path
+        // Electricity surge tubes: slide a Continuous Flowing bright tube along each path
         animatedLines.forEach(l => {
             if (!l.active) return;
-            const speed = 0.35; // normalized 0–1 per second
-            const surgeLen = 0.22; // 22% of the total curve length per surge segment
+            const speed = 1.5; // VERY fast current flow
+            const surgeLen = 0.35; // Length of the traveling energy bolt
 
-            // Advance offset and wrap
-            l.offset = (l.offset + speed * (1 / 60)) % 1;
+            // Advance offset continuously wrapping around
+            l.offset = (l.offset + speed * (1 / 60)) % (1.0 + surgeLen);
 
-            // Build a sub-curve of the surge segment
-            const t0 = l.offset;
-            const t1 = Math.min(t0 + surgeLen, 1.0);
+            // Build a sub-curve of the flowing segment
+            // Start of the bolt
+            const t0 = Math.max(0, l.offset - surgeLen);
+            // End of the bolt
+            const t1 = Math.min(1.0, l.offset);
 
             // Clear old surge mesh
             while (l.surgeHolder.children.length) {
@@ -725,28 +636,29 @@ function init3DHero() {
                 l.surgeHolder.remove(old);
             }
 
-            if (t1 > t0) {
+            if (t1 > t0 + 0.01) {
                 // Sub-curve points
                 const subPts = [];
-                const steps = 16;
+                const steps = Math.max(10, Math.floor((t1 - t0) * 40)); 
                 for (let s = 0; s <= steps; s++) {
                     subPts.push(l.curve.getPoint(t0 + (t1 - t0) * (s / steps)));
                 }
                 const subCurve = new THREE.CatmullRomCurve3(subPts);
 
                 // Bright cyan-white core surge tube
-                const surgeGeo = new THREE.TubeGeometry(subCurve, 12, 0.6, 5, false);
+                const surgeGeo = new THREE.TubeGeometry(subCurve, steps, 0.45, 5, false);
+
                 const surgeMesh = new THREE.Mesh(surgeGeo, l.surgeMat);
                 l.surgeHolder.add(surgeMesh);
 
-                // Outer electric glow bloom around the surge
-                const glowSurgeGeo = new THREE.TubeGeometry(subCurve, 12, 1.3, 5, false);
+                // Outer electric glow bloom around the continuous surge
+                const glowSurgeGeo = new THREE.TubeGeometry(subCurve, steps, 1.2, 5, false);
                 const glowSurgeMat = new THREE.MeshStandardMaterial({
                     color: 0x000000,
                     emissive: 0x7DF9FF,
-                    emissiveIntensity: 1.5,
+                    emissiveIntensity: 3.5, // Brighter to make current very visible
                     transparent: true,
-                    opacity: 0.5 + Math.sin(Date.now() * 0.01) * 0.15
+                    opacity: 0.8
                 });
                 const glowSurgeMesh = new THREE.Mesh(glowSurgeGeo, glowSurgeMat);
                 l.surgeHolder.add(glowSurgeMesh);
@@ -754,28 +666,7 @@ function init3DHero() {
 
             // Flicker: like electric discharge
             l.surgeMat.opacity = 0.85 + Math.sin(Date.now() * 0.05) * 0.15;
-            l.surgeMat.emissive.setHex(Math.sin(Date.now() * 0.02) > 0.3 ? 0xffffff : 0x7DF9FF);
-
-            // Drift sparks upward
-            if (l.sparks && l.sparks.material.opacity > 0) {
-                const pos = l.sparks.geometry.attributes.position;
-                const phaseArr = l.sparks.geometry.attributes.phase.array;
-                const pArr = l.sparks.geometry.attributes.tCurve.array;
-                for (let s = 0; s < pos.count; s++) {
-                    pos.array[s * 3 + 1] += 0.035; // drift UP
-                    pos.array[s * 3] += Math.sin(time * 2 + phaseArr[s]) * 0.015; // sway X
-                    pos.array[s * 3 + 2] += Math.cos(time * 2 + phaseArr[s]) * 0.015; // sway Z
-
-                    // Reset if it goes too high (say > 4 units above curve pt)
-                    const pt = l.curve.getPoint(pArr[s]);
-                    if (pos.array[s * 3 + 1] > pt.y + 4) {
-                        pos.array[s * 3] = pt.x + (Math.random() - 0.5) * 5;
-                        pos.array[s * 3 + 1] = pt.y - 1 + Math.random() * 2;
-                        pos.array[s * 3 + 2] = pt.z + (Math.random() - 0.5) * 5;
-                    }
-                }
-                pos.needsUpdate = true;
-            }
+            l.surgeMat.emissive.setHex(Math.sin(Date.now() * 0.02) > 0.3 ? 0xffffff : 0x00ffff);
         });
 
         // Flat chip group bob
@@ -884,39 +775,48 @@ function init3DHero() {
     }
 
     // Entry animations
-    // Center logo loads slowly first
-    gsap.from(chipGroup.scale, { x: 0, y: 0, z: 0, duration: 2.5, ease: 'power3.out' });
-    gsap.from(orbitRing.scale, { x: 0, y: 0, z: 0, duration: 2.2, delay: 0.2, ease: 'power2.out' });
+    // Center logo loads FAST first
+    gsap.from(chipGroup.scale, { x: 0, y: 0, z: 0, duration: 0.7, ease: 'back.out(1.5)' });
+    gsap.from(orbitRing.scale, { x: 0, y: 0, z: 0, duration: 0.7, delay: 0.1, ease: 'back.out(1.5)' });
     centerLogoWrap.style.opacity = '0';
-    gsap.to(centerLogoWrap, { opacity: 1, duration: 2.0, delay: 0.5, ease: 'power2.inOut' });
+    gsap.to(centerLogoWrap, { opacity: 1, duration: 0.5, delay: 0.2, ease: 'power2.inOut' });
 
-    // 1. Draw circuit dashed lines
-    gsap.to([bgTeal1, bgTeal2, bgCyan, bgDim, bgOrange, bgRed], {
-        dashOffset: 0,
-        duration: 3.8,
-        ease: "power2.inOut",
-        delay: 1.0 // shortly after center starts
+    // 1. Draw circuit dashed lines rapidly without GSAP warnings
+    let dashProxy = { offset: 2000 };
+    gsap.to(dashProxy, {
+        offset: 0,
+        duration: 1.5,
+        ease: "power2.out",
+        delay: 0.5, // start flowing shortly after center
+        onUpdate: () => {
+            bgTeal1.dashOffset = dashProxy.offset;
+            bgTeal2.dashOffset = dashProxy.offset;
+            bgCyan.dashOffset = dashProxy.offset;
+            bgDim.dashOffset = dashProxy.offset;
+            bgOrange.dashOffset = dashProxy.offset;
+            bgRed.dashOffset = dashProxy.offset;
+        }
     });
 
-    // 2. Fade in connecting tubes sequentially and then start flowing surge
-    animatedLines.forEach((lineData, idx) => {
-        const startDelay = 2.5 + (idx * 0.08); // faster stagger
+    // 2. Fade in connecting tubes, then start surge
+    animatedLines.forEach((lineData) => {
+        const startDelay = lineData.lineDelay !== undefined ? lineData.lineDelay : 0.7;
 
         // Fade in the wire base lines
         lineData.tubes.forEach((t, i) => {
             gsap.to(t.material, {
                 opacity: lineData.opacities[i],
-                duration: 0.8,
+                duration: 0.4,
                 delay: startDelay,
                 ease: "power2.out"
             });
         });
 
         // Start the flowing surge shortly after wires appear
-        gsap.delayedCall(startDelay + 0.5, () => {
+        gsap.delayedCall(startDelay + 0.2, () => {
             lineData.active = true;
             if (lineData.sparks) {
-                gsap.to(lineData.sparks.material, { opacity: 0.8, duration: 1.5 });
+                gsap.to(lineData.sparks.material, { opacity: 0.8, duration: 1.0 });
             }
         });
     });
@@ -972,9 +872,7 @@ function initGSAP() {
             const centerY = section.offsetTop + (section.offsetHeight / 2);
             let targetX = center;
 
-            if (section.classList.contains('intro')) {
-                targetX = center;
-            } else if (section.classList.contains('left')) {
+            if (section.classList.contains('left')) {
                 // S-curve weave: LEFT card → tracker swings to opposite (RIGHT)
                 targetX = width * 0.82;
             } else if (section.classList.contains('right')) {
@@ -1130,7 +1028,6 @@ function initGSAP() {
         }
     });
 
-    gsap.to(".group-companies-card", { x: 0, opacity: 1, duration: 1.2, ease: "power3.out", delay: 0.5 });
     gsap.to(".scroll-indicator", { scrollTrigger: { trigger: "#hero-3d", start: "top top", end: "15% top", scrub: true }, opacity: 0 });
 
     // Smooth transition from 3D Hero to the first section

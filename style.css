@@ -44,7 +44,7 @@ body {
 
 #bg-intro {
     object-fit: contain;
-    background-color: #002250;
+    background-color: transparent; /* Changed from solid blue to ensure 3D scene stays visible under the fade */
 }
 
 #bg-canvas {
@@ -499,7 +499,7 @@ section {
 .center-chip-logo {
     width: 155px;
     height: auto;
-    filter: drop-shadow(0 0 10px rgba(0, 200, 255, 0.4));
+    filter: none; /* removed blue drop shadow background */
     opacity: 1;
 }
 
