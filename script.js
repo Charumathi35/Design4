@@ -28,11 +28,23 @@ function init3DHero() {
     const companies = [];
     document.querySelectorAll('#content-container section.company').forEach((sec, index) => {
         const logoImg = sec.querySelector('.company-logo');
+        const rawTitle = sec.querySelector('h2').innerText;
+
+        // Extract short names like "Precision", "Durapack", "Limited" from full titles
+        let shortTitle = rawTitle.replace(/Pricol/gi, '').trim();
+        shortTitle = shortTitle.replace(/Products$/gi, '').trim();
+        shortTitle = shortTitle.replace(/Industries$/gi, '').trim();
+        shortTitle = shortTitle.replace(/Private Limited$/gi, '').trim();
+
+        // Keep fallback explicitly since "Pricol Limited" might get fully stripped if not careful 
+        // (but above logic only drops "Private Limited" suffix, so "Limited" stays)
+        if (!shortTitle) shortTitle = rawTitle;
+
         companies.push({
             id: sec.id,
-            title: sec.querySelector('h2').innerText,
+            title: shortTitle, // The 3D text label will now use this short name
             logo: logoImg ? logoImg.src : '',
-            html: sec.querySelector('.card').innerHTML,
+            html: sec.querySelector('.card').innerHTML, // The modal will still use the full HTML
             index: index
         });
     });
@@ -235,37 +247,33 @@ function init3DHero() {
     const dotTeal = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.90 });
 
     // \u2500\u2500 DENSE RADIATING CIRCUIT TRACES FROM CENTER (like reference image) \u2500\u2500
-    for (let i = 0; i < 500; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const startRad = 8 + Math.random() * 30;
+    for (let i = 0; i < 65; i++) {
+        const angle = (i / 65) * Math.PI * 2;
+        const startRad = 15 + Math.random() * 20;
         let x = Math.cos(angle) * startRad;
         let z = Math.sin(angle) * startRad;
 
         const pts = [new THREE.Vector3(x, 0, z)];
-        const segs = Math.floor(Math.random() * 7) + 4;
+        const segs = Math.floor(Math.random() * 4) + 2; 
         const r = Math.random();
         let mat = bgTeal2, viaMat = viaTeal;
 
-        if (r > 0.94) { mat = bgOrange; viaMat = viaOrange; }
-        else if (r > 0.88) { mat = bgRed; viaMat = viaOrange; }
-        else if (r > 0.65) { mat = bgTeal1; viaMat = viaTeal; }
-        else if (r > 0.45) { mat = bgCyan; viaMat = viaTeal; }
+        if (r > 0.90) { mat = bgOrange; viaMat = viaOrange; }
+        else if (r > 0.82) { mat = bgRed; viaMat = viaOrange; }
+        else if (r > 0.60) { mat = bgTeal1; viaMat = viaTeal; }
+        else if (r > 0.35) { mat = bgCyan; viaMat = viaTeal; }
         else { mat = bgDim; viaMat = viaTeal; }
 
-        let dir = Math.random() > 0.5 ? 'x' : 'z';
+        let dir = Math.abs(x) > Math.abs(z) ? 'x' : 'z'; 
 
         for (let j = 0; j < segs; j++) {
-            const len = 12 + Math.random() * 55;
+            const len = 30 + Math.random() * 60;
             if (dir === 'x') {
-                x += (Math.random() > 0.5 ? 1 : -1) * len;
-                dir = Math.random() > 0.4 ? 'z' : 'diag';
+                x += Math.sign(x || 1) * len; 
+                dir = 'z'; 
             } else if (dir === 'z') {
-                z += (Math.random() > 0.5 ? 1 : -1) * len;
-                dir = Math.random() > 0.4 ? 'x' : 'diag';
-            } else {
-                x += (Math.random() > 0.5 ? 1 : -1) * len * 0.707;
-                z += (Math.random() > 0.5 ? 1 : -1) * len * 0.707;
-                dir = Math.random() > 0.5 ? 'x' : 'z';
+                z += Math.sign(z || 1) * len;
+                dir = 'x'; 
             }
             pts.push(new THREE.Vector3(x, 0, z));
         }
@@ -277,7 +285,7 @@ function init3DHero() {
 
         // Glowing ring vias at start/end of traces
         [pts[0], pts[pts.length - 1]].forEach(p => {
-            if (Math.random() > 0.35) {
+            if (Math.random() > 0.3) {
                 const ring = new THREE.Mesh(viaGeo, viaMat);
                 ring.position.set(p.x, 0.06, p.z);
                 ring.rotation.x = -Math.PI / 2;
@@ -285,9 +293,9 @@ function init3DHero() {
             }
         });
 
-        // Filled dot at mid-trace corners (the orange/teal junction dots in reference)
+        // Filled dot at mid-trace corners
         pts.forEach((p, idx) => {
-            if (idx > 0 && idx < pts.length - 1 && Math.random() > 0.72) {
+            if (idx > 0 && idx < pts.length - 1 && Math.random() > 0.6) {
                 const isOrange = mat === bgOrange || mat === bgRed;
                 const dot = new THREE.Mesh(dotGeo, isOrange ? dotOrange : dotTeal);
                 dot.position.set(p.x, 0.07, p.z);
@@ -433,8 +441,16 @@ function init3DHero() {
     const nodePositions = fixedPositions.slice(0, companies.length);
 
     companies.forEach((comp, i) => {
-        const x = nodePositions[i].x;
-        const z = nodePositions[i].z;
+        let x = nodePositions[i].x;
+        let z = nodePositions[i].z;
+        if (isMobile) {
+            x *= 0.38; // Squeeze horizontally so labels stay on-screen
+            z *= 1.4;  // Drastically stretch vertically up and down to fill the empty top and bottom spaces
+            
+            // Add a little extra randomized spread to scatter them in mobile mode
+            z += (Math.random() - 0.5) * 40;
+            x += (Math.random() - 0.5) * 20;
+        }
         const y = -1 + (Math.random() * 2);   // low to floor
         const targetPos = new THREE.Vector3(x, y, z);
         const accent = accentColors[i % accentColors.length];
@@ -618,51 +634,54 @@ function init3DHero() {
         animatedLines.forEach(l => {
             if (!l.active) return;
             const speed = 1.5; // VERY fast current flow
-            const surgeLen = 0.35; // Length of the traveling energy bolt
 
-            // Advance offset continuously wrapping around
-            l.offset = (l.offset + speed * (1 / 60)) % (1.0 + surgeLen);
+            if (!l.finished) {
+                // Advance offset continuously stopping heavily at 1.0 to make it perfectly sticky
+                l.offset = Math.min(1.0, l.offset + speed * (1 / 60));
 
-            // Build a sub-curve of the flowing segment
-            // Start of the bolt
-            const t0 = Math.max(0, l.offset - surgeLen);
-            // End of the bolt
-            const t1 = Math.min(1.0, l.offset);
+                const t0 = 0; // Starts at origin
+                const t1 = l.offset; // Fills to edge
 
-            // Clear old surge mesh
-            while (l.surgeHolder.children.length) {
-                const old = l.surgeHolder.children[0];
-                old.geometry.dispose();
-                l.surgeHolder.remove(old);
-            }
-
-            if (t1 > t0 + 0.01) {
-                // Sub-curve points
-                const subPts = [];
-                const steps = Math.max(10, Math.floor((t1 - t0) * 40)); 
-                for (let s = 0; s <= steps; s++) {
-                    subPts.push(l.curve.getPoint(t0 + (t1 - t0) * (s / steps)));
+                // Clear old surge mesh
+                while (l.surgeHolder.children.length) {
+                    const old = l.surgeHolder.children[0];
+                    old.geometry.dispose();
+                    l.surgeHolder.remove(old);
                 }
-                const subCurve = new THREE.CatmullRomCurve3(subPts);
 
-                // Bright cyan-white core surge tube
-                const surgeGeo = new THREE.TubeGeometry(subCurve, steps, 0.45, 5, false);
+                if (t1 > t0 + 0.01) {
+                    // Sub-curve points
+                    const subPts = [];
+                    // Higher detail (more steps) ensures thick tubes don't have gaps at bends
+                    const steps = Math.max(48, Math.floor(t1 * 128));
+                    for (let s = 0; s <= steps; s++) {
+                        subPts.push(l.curve.getPoint(t0 + (t1 - t0) * (s / steps)));
+                    }
+                    const subCurve = new THREE.CatmullRomCurve3(subPts);
 
-                const surgeMesh = new THREE.Mesh(surgeGeo, l.surgeMat);
-                l.surgeHolder.add(surgeMesh);
+                    // Bright cyan-white core surge tube
+                    const surgeGeo = new THREE.TubeGeometry(subCurve, steps, 0.55, 5, false);
 
-                // Outer electric glow bloom around the continuous surge
-                const glowSurgeGeo = new THREE.TubeGeometry(subCurve, steps, 1.2, 5, false);
-                const glowSurgeMat = new THREE.MeshStandardMaterial({
-                    color: 0x000000,
-                    emissive: 0x7DF9FF,
-                    emissiveIntensity: 3.5, // Brighter to make current very visible
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const glowSurgeMesh = new THREE.Mesh(glowSurgeGeo, glowSurgeMat);
-                l.surgeHolder.add(glowSurgeMesh);
+                    const surgeMesh = new THREE.Mesh(surgeGeo, l.surgeMat);
+                    l.surgeHolder.add(surgeMesh);
+
+                    // Outer electric glow bloom — thicker to ensure visibility
+                    const glowSurgeGeo = new THREE.TubeGeometry(subCurve, steps, 1.6, 5, false);
+                    const glowSurgeMat = new THREE.MeshStandardMaterial({
+                        color: 0x000000,
+                        emissive: 0x7DF9FF,
+                        emissiveIntensity: 5.0, // High intensity for a solid look
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    const glowSurgeMesh = new THREE.Mesh(glowSurgeGeo, glowSurgeMat);
+                    l.surgeHolder.add(glowSurgeMesh);
+                }
+
+                if (l.offset >= 1.0) l.finished = true; // Optimization: Line statically frozen fully lit
             }
+
+            // Flicker: like electric discharge (keeps the fully drawn mesh looking alive and charged)
 
             // Flicker: like electric discharge
             l.surgeMat.opacity = 0.85 + Math.sin(Date.now() * 0.05) * 0.15;
@@ -832,19 +851,21 @@ function initGSAP() {
     function resizePath() {
         const width = window.innerWidth;
         const height = container.scrollHeight;
+        const center = width / 2;
 
         svg.setAttribute("width", width);
         svg.setAttribute("height", height);
-        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-        const center = width / 2;
-
+        const hero3DHeight = document.getElementById('hero-3d').offsetHeight;
         let startX = center;
-        // Path starts at the very top of content-container so its origin exactly maps to the center of the 3D Hero when 'top center' ScrollTrigger hits
-        let startY = 0;
+        let startY = 0; // Starts exactly at the top edge of content
 
-        // Fallback for getting symbol dimensions to use for path offset
-        const size = 110; // Increased size to make the side scroll icon bigger
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        svg.style.top = "0px";
+        svg.style.height = height + "px";
+
+        // Fallback for getting symbol dimensions for path offset
+        const size = 110;
         const trackerImg = document.querySelector("#tracker image");
         const clipCircle = document.querySelector("#circle-clip circle");
 
@@ -853,19 +874,19 @@ function initGSAP() {
             trackerImg.setAttribute("height", size);
             trackerImg.setAttribute("x", -size / 2);
             trackerImg.setAttribute("y", -size / 2);
-
-            if (clipCircle) {
-                clipCircle.setAttribute("r", size / 2);
-            }
+            if (clipCircle) clipCircle.setAttribute("r", size / 2);
         }
 
         const trackerText = document.getElementById("tracker-text");
         if (trackerText) {
-            trackerText.setAttribute("x", (size / 2) + 10);
+            // Default: text to the right
+            trackerText.setAttribute("x", (size / 2) + 12);
             trackerText.setAttribute("y", size * 0.1);
+            trackerText.style.textAlign = "start";
         }
 
-        const sections = document.querySelectorAll("section.company, section.footer");
+        const isMobile = window.innerWidth <= 768;
+        const sections = document.querySelectorAll("section.company");
         let points = [{ x: startX, y: startY }];
 
         sections.forEach((section) => {
@@ -873,11 +894,11 @@ function initGSAP() {
             let targetX = center;
 
             if (section.classList.contains('left')) {
-                // S-curve weave: LEFT card → tracker swings to opposite (RIGHT)
-                targetX = width * 0.82;
+                // Card is on LEFT side -> Move tracker to the RIGHT side (opposite)
+                targetX = isMobile ? width * 0.92 : width * 0.82;
             } else if (section.classList.contains('right')) {
-                // S-curve weave: RIGHT card → tracker swings to opposite (LEFT)
-                targetX = width * 0.18;
+                // Card is on RIGHT side -> Move tracker to the LEFT side (opposite)
+                targetX = isMobile ? width * 0.08 : width * 0.18;
             } else {
                 targetX = center;
             }
@@ -885,16 +906,14 @@ function initGSAP() {
         });
 
         const footer = document.querySelector(".footer");
-        const stopY = footer ? footer.offsetTop - 150 : height - 250;
+        const stopY = footer ? footer.offsetTop + (footer.offsetHeight / 2) : height;
         points.push({ x: center, y: stopY });
 
         let d = `M ${points[0].x} ${points[0].y}`;
 
         for (let i = 0; i < points.length - 1; i++) {
-            const p0 = (i > 0) ? points[i - 1] : points[0];
             const p1 = points[i];
             const p2 = points[i + 1];
-
             const cp1x = p1.x;
             const cp1y = p1.y + (p2.y - p1.y) / 2;
             const cp2x = p2.x;
@@ -925,7 +944,7 @@ function initGSAP() {
         ScrollTrigger.create({
             trigger: ".content-container",
             start: "top center", // Precisely when startY=0 hits the 3D logo in viewport
-            end: "bottom center",
+            end: "bottom bottom", // "bottom bottom" ensures scrub finishes when the page ends
             onEnter: () => gsap.to(["#tracker", "#path", "#tracker-text"], { opacity: 1, duration: 0.4 }),
             onLeaveBack: () => gsap.to(["#tracker", "#path", "#tracker-text"], { opacity: 0, duration: 0.3 })
         });
@@ -941,7 +960,7 @@ function initGSAP() {
             scrollTrigger: {
                 trigger: ".content-container",
                 start: "top center",
-                end: "bottom center",
+                end: "bottom bottom", // changed from "bottom center" to ensure it reaches 100% path at bottom of page
                 scrub: 1
             }
         });

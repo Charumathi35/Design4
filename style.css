@@ -67,10 +67,12 @@ svg#motionPath {
 }
 
 #path {
-    stroke: rgba(212, 175, 55, 0.4);
-    stroke-width: 4px;
+    stroke: #D4AF37;
+    stroke-width: 6px;
     fill: none;
     stroke-linecap: round;
+    opacity: 1;
+    filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.9));
 }
 
 #tracker {
@@ -517,6 +519,8 @@ section {
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     pointer-events: auto;
     width: 110px;
     height: 110px;
@@ -656,14 +660,32 @@ section {
         font-size: 2.5rem;
     }
 
-    .company {
-        justify-content: center !important;
+    .company.left {
+        justify-content: flex-end !important; /* Move card to right, tracker is on left */
+        padding-right: 2%;
+    }
+
+    .company.right {
+        justify-content: flex-start !important; /* Move card to left, tracker is on right */
+        padding-left: 2%;
     }
 
     .card {
-        width: 100%;
-        max-width: 100%;
+        width: 65%; 
+        max-width: 65%;
+        padding: 2rem 1.2rem;
     }
+
+    .card h2 {
+        font-size: 1.5rem !important;
+        margin-bottom: 20px;
+    }
+
+    .card p {
+        font-size: 1.05rem !important;
+        line-height: 1.6;
+    }
+
 
     .header-overlay {
         top: 20px;
@@ -691,6 +713,7 @@ section {
         transform: translateY(0);
     }
 
+
     #hero-3d {
         height: 100svh;
         /* More reliable on mobile browsers with dynamic navbars */
@@ -707,7 +730,9 @@ section {
     }
 
     .node-title-text {
-        font-size: 9px;
-        padding: 3px 8px;
+        font-size: 11px;
+        padding: 4px 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
     }
 }
